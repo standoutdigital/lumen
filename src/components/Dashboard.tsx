@@ -1,30 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { Layers, Network, Square, Trash, ArrowUp, ArrowDown, Activity, PenTool } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { NamespaceSelector } from './NamespaceSelector';
-import { Drawer } from './Drawer';
-import { DeploymentDetails } from './DeploymentDetails';
-import { PodDetails } from './PodDetails';
-import { ServiceDetails } from './ServiceDetails';
-import { ClusterRoleBindingDetails } from './ClusterRoleBindingDetails';
-import { RoleBindingDetails } from './RoleBindingDetails';
-import { ServiceAccountDetails } from './ServiceAccountDetails';
-import { RoleDetails } from './RoleDetails';
-import { CrdDetails } from './CrdDetails';
-import { GenericResourceDetails } from './GenericResourceDetails';
-import { NodeDetails } from './NodeDetails';
-import { ErrorBoundary } from './ErrorBoundary';
-import { TimeAgo } from './TimeAgo';
-import { OverviewCharts } from './OverviewCharts';
-import { EventsTable } from './EventsTable';
-import { ResourceTopology } from './ResourceTopology';
-import { ScaleModal } from './ScaleModal';
-import { ReplicaSetDetails } from './ReplicaSetDetails';
-import { DaemonSetDetails } from './DaemonSetDetails';
-import { StatefulSetDetails } from './StatefulSetDetails';
-import { JobDetails } from './JobDetails';
-import { CronJobDetails } from './CronJobDetails';
-import { PodVisualizer } from './PodVisualizer';
+import React, { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Activity,
+  Layers,
+  Network,
+  PenTool,
+  Square,
+  Trash
+} from 'lucide-react';
+import { ErrorBoundary } from './shared/ErrorBoundary';
+import { TimeAgo } from './shared/TimeAgo';
+import { NamespaceSelector } from './dashboard/NamespaceSelector';
+import { Drawer } from './shared/Drawer';
+import { DrawerDetailsRenderer } from './dashboard/DrawerDetailsRenderer';
+import { GenericResourceView } from './dashboard/views/GenericResourceView';
+import { PodsView } from './dashboard/views/PodsView';
+import { OverviewView } from './dashboard/views/OverviewView';
+import { ResourceTopology } from './resources/visualizers/ResourceTopology';
+import { ScaleModal } from './shared/ScaleModal';
+import { StatusBadge } from './shared/StatusBadge';
 
 
 interface DashboardProps {
@@ -588,807 +582,509 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto p-6">
              {/* NODES TABLE */}
+             {/* NODES TABLE */}
              {(activeView === 'nodes') && (
-                <motion.div 
-                    key="nodes"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        The physical or virtual machines that make up the cluster.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Status', 'Roles', 'Version', 'Age']}
-                        data={nodes}
-                        onRowClick={(node: any) => handleResourceClick(node, 'node')}
-                        renderRow={(node: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{node.name}</td>
-                                <td className="px-6 py-3">
-                                    <span className={`px-2 py-0.5 rounded text-xs ${
-                                        node.status === 'Ready' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-                                    }`}>
-                                        {node.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-3 text-gray-400">{node.roles}</td>
-                                <td className="px-6 py-3 text-gray-400">{node.version}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={node.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="nodes"
+                    description="The physical or virtual machines that make up the cluster."
+                    headers={['Name', 'Status', 'Roles', 'Version', 'Age']}
+                    data={nodes}
+                    onRowClick={(node: any) => handleResourceClick(node, 'node')}
+                    renderRow={(node: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{node.name}</td>
+                            <td className="px-6 py-3">
+                                <span className={`px-2 py-0.5 rounded text-xs ${
+                                    node.status === 'Ready' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                                }`}>
+                                    {node.status}
+                                </span>
+                            </td>
+                            <td className="px-6 py-3 text-gray-400">{node.roles}</td>
+                            <td className="px-6 py-3 text-gray-400">{node.version}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={node.age} /></td>
+                        </>
+                    )}
+                />
              )}
 
              {/* CUSTOM RESOURCES TABLE */}
+             {/* CUSTOM RESOURCES TABLE */}
              {(isCrdView) && (
-                <motion.div 
-                    key={`crd-${currentCrdKind}`}
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4 uppercase tracking-wider">
-                        {currentCrdKind || 'Custom Resources'}
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Age']}
-                        data={customObjects}
-                        renderRow={(obj: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{obj.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{obj.namespace || '-'}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={obj.age} /></td>
-                            </>
-                        )}
-                        onRowClick={(obj: any) => handleResourceClick(obj, 'custom-resource')}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey={`crd-${currentCrdKind}`}
+                    description={currentCrdKind || 'Custom Resources'}
+                    headers={['Name', 'Namespace', 'Age']}
+                    data={customObjects}
+                    renderRow={(obj: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{obj.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{obj.namespace || '-'}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={obj.age} /></td>
+                        </>
+                    )}
+                    onRowClick={(obj: any) => handleResourceClick(obj, 'custom-resource')}
+                />
              )}
 
              {/* CRD DEFINITIONS TABLE */}
+             {/* CRD DEFINITIONS TABLE */}
             {activeView === 'crd-definitions' && (
-                <motion.div
-                    key="crd-definitions"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                     <p className="text-sm text-gray-400 mb-4">
-                        Definitions of Custom Resources installed in the cluster.
-                    </p>
-                     <ResourceTable 
-                        headers={['Name', 'Group', 'Kind', 'Scope', 'Age']}
-                        data={crdDefinitions}
-                        onRowClick={(crd: any) => handleResourceClick(crd, 'crd-definition')}
-                        renderRow={(crd: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{crd.name}</td>
-                                <td className="px-6 py-3 text-blue-400">{crd.group}</td>
-                                <td className="px-6 py-3 text-gray-300">{crd.kind}</td>
-                                <td className="px-6 py-3 text-gray-400">{crd.scope}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={crd.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="crd-definitions"
+                    description="Definitions of Custom Resources installed in the cluster."
+                    headers={['Name', 'Group', 'Kind', 'Scope', 'Age']}
+                    data={crdDefinitions}
+                    onRowClick={(crd: any) => handleResourceClick(crd, 'crd-definition')}
+                    renderRow={(crd: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{crd.name}</td>
+                            <td className="px-6 py-3 text-blue-400">{crd.group}</td>
+                            <td className="px-6 py-3 text-gray-300">{crd.kind}</td>
+                            <td className="px-6 py-3 text-gray-400">{crd.scope}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={crd.age} /></td>
+                        </>
+                    )}
+                />
             )}
 
              <AnimatePresence mode="wait">
               {/* OVERVIEW DASHBOARD */}
               {activeView === 'overview' && (
-                 <motion.div 
-                     key="overview-dashboard"
-                     initial="initial"
-                     animate="in"
-                     exit="out"
-                     variants={pageVariants}
-                     transition={pageTransition}
-                     className="mb-8"
-                 >
-                     <p className="text-sm text-gray-400 mb-6">
-                         Real-time health status and activities of your cluster.
-                     </p>
-                     
-                     <OverviewCharts 
-                         pods={pods} 
-                         deployments={deployments} 
-                         onViewDetails={() => {
-                             if (onNavigate) {
-                                 onNavigate('pods');
-                                 setPodViewMode('visual');
-                             }
-                         }}
-                     />
-                     
-                     <EventsTable events={events} />
-                 </motion.div>
+                  <motion.div 
+                      key="overview-dashboard"
+                      initial="initial"
+                      animate="in"
+                      exit="out"
+                      variants={pageVariants}
+                      transition={pageTransition}
+                  >
+                      <OverviewView 
+                          pods={pods}
+                          deployments={deployments}
+                          events={events}
+                          onNavigate={onNavigate}
+                          onSwitchToVisualPods={() => setPodViewMode('visual')}
+                      />
+                  </motion.div>
               )}
 
              {/* DEPLOYMENTS TABLE */}
+             {/* DEPLOYMENTS TABLE */}
              {(activeView === 'deployments') && (
-                <motion.div 
-                    key="deployments"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Manage your application deployments and scaling strategies.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Replicas', 'Status']}
-                        data={deployments}
-                        onRowClick={(dep: any) => handleResourceClick(dep, 'deployment')}
-                        renderRow={(dep: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{dep.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{dep.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{dep.availableReplicas || 0} / {dep.replicas || 0}</td>
-                                <td className="px-6 py-3">
-                                    <StatusBadge condition={dep.availableReplicas === dep.replicas && dep.replicas > 0} />
-                                </td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="deployments"
+                    description="Manage your application deployments and scaling strategies."
+                    headers={['Name', 'Namespace', 'Replicas', 'Status']}
+                    data={deployments}
+                    onRowClick={(dep: any) => handleResourceClick(dep, 'deployment')}
+                    renderRow={(dep: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{dep.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{dep.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{dep.availableReplicas || 0} / {dep.replicas || 0}</td>
+                            <td className="px-6 py-3">
+                                <StatusBadge condition={dep.availableReplicas === dep.replicas && dep.replicas > 0} />
+                            </td>
+                        </>
+                    )}
+                />
              )}
 
              {/* PODS TABLE */}
              {(activeView === 'pods') && (
-                <motion.div 
-                    key="pods"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    {podViewMode === 'list' ? (
-                        <>
-                            <p className="text-sm text-gray-400 mb-4">
-                                The smallest deployable units of computing that you can create and manage.
-                            </p>
-                            <ResourceTable 
-                                headers={[
-                                    { label: 'Name', key: 'name', sortable: true },
-                                    { label: 'Namespace', key: 'namespace', sortable: true },
-                                    { label: 'Restarts', key: 'restarts', sortable: true },
-                                    { label: 'Status', key: 'status', sortable: true },
-                                    { label: 'Containers' }, // Not sortable
-                                    { label: 'Age', key: 'age', sortable: true }
-                                ]}
-                                data={getSortedData(pods)}
-                                sortConfig={sortConfig}
-                                onSort={handleSort}
-                                onRowClick={(pod: any) => handleResourceClick(pod, 'pod')}
-                                renderRow={(pod: any) => (
-                                    <>
-                                        <td className="px-6 py-3 font-medium text-gray-200">{pod.name}</td>
-                                        <td className="px-6 py-3 text-gray-400">{pod.namespace}</td>
-                                        <td className="px-6 py-3 text-gray-400">{pod.restarts}</td>
-                                        <td className="px-6 py-3">
-                                            <span className={`px-2 py-0.5 rounded text-xs border ${
-                                                pod.status === 'Running' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
-                                                pod.status === 'Pending' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                                pod.status === 'Succeeded' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                                pod.status === 'Failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                                                'bg-gray-500/10 text-gray-400 border-gray-500/20'
-                                            }`}>
-                                                {pod.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-3">
-                                            <div className="flex gap-1 items-center">
-                                               {pod.containers?.map((c: any, idx: number) => {
-                                                   let color = 'bg-gray-500';
-                                                   if (c.state === 'running' && c.ready) color = 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]';
-                                                   else if (c.state === 'running' && !c.ready) color = 'bg-yellow-500';
-                                                   else if (c.state === 'waiting') color = 'bg-yellow-500 animate-pulse';
-                                                   else if (c.state === 'terminated' && c.restartCount > 0) color = 'bg-red-500'; 
-                                                   else if (c.state === 'terminated') color = 'bg-gray-500';
-         
-                                                   return (
-                                                       <div 
-                                                            key={idx} 
-                                                            className={`w-2 h-2 rounded-full ${color}`} 
-                                                            title={`${c.name}: ${c.state} (Restarts: ${c.restartCount})`}
-                                                        />
-                                                   );
-                                               })}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={pod.age} /></td>
-                                    </>
-                                )}
-                            />
-                        </>
-                    ) : (
-                        <PodVisualizer 
-                            pods={pods}
-                            nodes={nodes}
-                        />
-                    )}
-                </motion.div>
+                <PodsView 
+                    viewMode={podViewMode}
+                    pods={pods}
+                    sortedPods={getSortedData(pods)}
+                    nodes={nodes}
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    onRowClick={(pod: any) => handleResourceClick(pod, 'pod')}
+                />
              )}
              
              {/* REPLICA SETS TABLE */}
+             {/* REPLICA SETS TABLE */}
              {(activeView === 'replicasets') && (
-                <motion.div 
-                    key="replicasets"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Ensures a specified number of pod replicas are running at any given time.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Desired', 'Current', 'Ready']}
-                        data={replicaSets}
-                        onRowClick={(rs: any) => handleResourceClick(rs, 'replicaset')}
-                        renderRow={(rs: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{rs.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{rs.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{rs.desired}</td>
-                                <td className="px-6 py-3 text-gray-400">{rs.current}</td>
-                                <td className="px-6 py-3 text-gray-400">{rs.ready}</td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="replicasets"
+                    description="Ensures a specified number of pod replicas are running at any given time."
+                    headers={['Name', 'Namespace', 'Desired', 'Current', 'Ready']}
+                    data={replicaSets}
+                    onRowClick={(rs: any) => handleResourceClick(rs, 'replicaset')}
+                    renderRow={(rs: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{rs.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{rs.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{rs.desired}</td>
+                            <td className="px-6 py-3 text-gray-400">{rs.current}</td>
+                            <td className="px-6 py-3 text-gray-400">{rs.ready}</td>
+                        </>
+                    )}
+                />
              )}
 
              {/* SERVICES TABLE */}
+             {/* SERVICES TABLE */}
              {(activeView === 'services') && (
-                <motion.div 
-                    key="services"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Network services for your application components.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Type', 'Cluster IP', 'Ports', 'Age']}
-                        data={services}
-                        onRowClick={(svc: any) => handleResourceClick(svc, 'service')}
-                        renderRow={(svc: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{svc.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{svc.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{svc.type}</td>
-                                <td className="px-6 py-3 text-gray-400 font-mono text-xs">{svc.clusterIP}</td>
-                                <td className="px-6 py-3 text-gray-400 font-mono text-xs">{svc.ports}</td>
-                                <td className="px-6 py-3 text-gray-400">{new Date(svc.age).toLocaleDateString()}</td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="services"
+                    description="Network services for your application components."
+                    headers={['Name', 'Namespace', 'Type', 'Cluster IP', 'Ports', 'Age']}
+                    data={services}
+                    onRowClick={(svc: any) => handleResourceClick(svc, 'service')}
+                    renderRow={(svc: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{svc.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{svc.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{svc.type}</td>
+                            <td className="px-6 py-3 text-gray-400 font-mono text-xs">{svc.clusterIP}</td>
+                            <td className="px-6 py-3 text-gray-400 font-mono text-xs">{svc.ports}</td>
+                            <td className="px-6 py-3 text-gray-400">{new Date(svc.age).toLocaleDateString()}</td>
+                        </>
+                    )}
+                />
              )}
 
              {/* CLUSTER ROLE BINDINGS TABLE */}
+             {/* CLUSTER ROLE BINDINGS TABLE */}
              {(activeView === 'clusterrolebindings') && (
-                <motion.div 
-                    key="clusterrolebindings"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Cluster-wide access control and permission bindings.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Age']}
-                        data={clusterRoleBindings}
-                        onRowClick={(crb: any) => handleResourceClick(crb, 'clusterrolebinding')}
-                        renderRow={(crb: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{crb.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{new Date(crb.age).toLocaleDateString()}</td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="clusterrolebindings"
+                    description="Cluster-wide access control and permission bindings."
+                    headers={['Name', 'Age']}
+                    data={clusterRoleBindings}
+                    onRowClick={(crb: any) => handleResourceClick(crb, 'clusterrolebinding')}
+                    renderRow={(crb: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{crb.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{new Date(crb.age).toLocaleDateString()}</td>
+                        </>
+                    )}
+                />
              )}
 
              {/* ROLE BINDINGS TABLE */}
+             {/* ROLE BINDINGS TABLE */}
              {(activeView === 'rolebindings') && (
-                <motion.div 
-                    key="rolebindings"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Namespace-scoped permissions and access control.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Age']}
-                        data={roleBindings}
-                        onRowClick={(rb: any) => handleResourceClick(rb, 'rolebinding')}
-                        renderRow={(rb: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{rb.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{rb.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{new Date(rb.age).toLocaleDateString()}</td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="rolebindings"
+                    description="Namespace-scoped permissions and access control."
+                    headers={['Name', 'Namespace', 'Age']}
+                    data={roleBindings}
+                    onRowClick={(rb: any) => handleResourceClick(rb, 'rolebinding')}
+                    renderRow={(rb: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{rb.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{rb.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{new Date(rb.age).toLocaleDateString()}</td>
+                        </>
+                    )}
+                />
              )}
 
 
              {/* SERVICE ACCOUNTS TABLE */}
+             {/* SERVICE ACCOUNTS TABLE */}
              {(activeView === 'serviceaccounts') && (
-                <motion.div 
-                    key="serviceaccounts"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Identities for processes that run in a Pod.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Secrets', 'Age']}
-                        data={serviceAccounts}
-                        onRowClick={(sa: any) => handleResourceClick(sa, 'serviceaccount')}
-                        renderRow={(sa: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{sa.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{sa.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{sa.secrets}</td>
-                                <td className="px-6 py-3 text-gray-400">{new Date(sa.age).toLocaleDateString()}</td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="serviceaccounts"
+                    description="Identities for processes that run in a Pod."
+                    headers={['Name', 'Namespace', 'Secrets', 'Age']}
+                    data={serviceAccounts}
+                    onRowClick={(sa: any) => handleResourceClick(sa, 'serviceaccount')}
+                    renderRow={(sa: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{sa.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{sa.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{sa.secrets}</td>
+                            <td className="px-6 py-3 text-gray-400">{new Date(sa.age).toLocaleDateString()}</td>
+                        </>
+                    )}
+                />
              )}
 
              {/* ROLES TABLE */}
+             {/* ROLES TABLE */}
              {(activeView === 'roles') && (
-                <motion.div 
-                    key="roles"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Sets of permissions within a specific namespace.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Age']}
-                        data={roles}
-                        onRowClick={(r: any) => handleResourceClick(r, 'role')}
-                        renderRow={(r: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{r.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{r.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{new Date(r.age).toLocaleDateString()}</td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="roles"
+                    description="Sets of permissions within a specific namespace."
+                    headers={['Name', 'Namespace', 'Age']}
+                    data={roles}
+                    onRowClick={(r: any) => handleResourceClick(r, 'role')}
+                    renderRow={(r: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{r.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{r.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{new Date(r.age).toLocaleDateString()}</td>
+                        </>
+                    )}
+                />
              )}
              {/* DAEMONSETS TABLE */}
+             {/* DAEMONSETS TABLE */}
              {(activeView === 'daemonsets') && (
-                <motion.div 
-                    key="daemonsets"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Ensures that all (or some) Nodes run a copy of a Pod.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Desired', 'Current', 'Ready', 'Available', 'Age']}
-                        data={daemonSets}
-                        onRowClick={(ds: any) => handleResourceClick(ds, 'daemonset')}
-                        renderRow={(ds: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{ds.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{ds.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{ds.desired}</td>
-                                <td className="px-6 py-3 text-gray-400">{ds.current}</td>
-                                <td className="px-6 py-3 text-gray-400">{ds.ready}</td>
-                                <td className="px-6 py-3 text-gray-400">{ds.available}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={ds.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="daemonsets"
+                    description="Ensures that all (or some) Nodes run a copy of a Pod."
+                    headers={['Name', 'Namespace', 'Desired', 'Current', 'Ready', 'Available', 'Age']}
+                    data={daemonSets}
+                    onRowClick={(ds: any) => handleResourceClick(ds, 'daemonset')}
+                    renderRow={(ds: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{ds.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{ds.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{ds.desired}</td>
+                            <td className="px-6 py-3 text-gray-400">{ds.current}</td>
+                            <td className="px-6 py-3 text-gray-400">{ds.ready}</td>
+                            <td className="px-6 py-3 text-gray-400">{ds.available}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={ds.age} /></td>
+                        </>
+                    )}
+                />
              )}
 
              {/* STATEFULSETS TABLE */}
+             {/* STATEFULSETS TABLE */}
              {(activeView === 'statefulsets') && (
-                <motion.div 
-                    key="statefulsets"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Manages the deployment and scaling of a set of Pods, and provides guarantees about the ordering and uniqueness of these Pods.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Replicas', 'Ready', 'Current', 'Age']}
-                        data={statefulSets}
-                        onRowClick={(sts: any) => handleResourceClick(sts, 'statefulset')}
-                        renderRow={(sts: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{sts.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{sts.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{sts.replicas}</td>
-                                <td className="px-6 py-3 text-gray-400">{sts.ready}</td>
-                                <td className="px-6 py-3 text-gray-400">{sts.current}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={sts.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="statefulsets"
+                    description="Manages the deployment and scaling of a set of Pods, and provides guarantees about the ordering and uniqueness of these Pods."
+                    headers={['Name', 'Namespace', 'Replicas', 'Ready', 'Current', 'Age']}
+                    data={statefulSets}
+                    onRowClick={(sts: any) => handleResourceClick(sts, 'statefulset')}
+                    renderRow={(sts: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{sts.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{sts.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{sts.replicas}</td>
+                            <td className="px-6 py-3 text-gray-400">{sts.ready}</td>
+                            <td className="px-6 py-3 text-gray-400">{sts.current}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={sts.age} /></td>
+                        </>
+                    )}
+                />
              )}
 
              {/* JOBS TABLE */}
+             {/* JOBS TABLE */}
              {(activeView === 'jobs') && (
-                <motion.div 
-                    key="jobs"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        A Job creates one or more Pods and will continue to retry execution of the Pods until a specified number of them successfully terminate.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Completions', 'Succeeded', 'Active', 'Failed', 'Age']}
-                        data={jobs}
-                        onRowClick={(job: any) => handleResourceClick(job, 'job')}
-                        renderRow={(job: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{job.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{job.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{job.completions}</td>
-                                <td className="px-6 py-3 text-gray-400 text-green-400">{job.succeeded}</td>
-                                <td className="px-6 py-3 text-gray-400 text-blue-400">{job.active}</td>
-                                <td className="px-6 py-3 text-gray-400 text-red-400">{job.failed}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={job.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="jobs"
+                    description="A Job creates one or more Pods and will continue to retry execution of the Pods until a specified number of them successfully terminate."
+                    headers={['Name', 'Namespace', 'Completions', 'Succeeded', 'Active', 'Failed', 'Age']}
+                    data={jobs}
+                    onRowClick={(job: any) => handleResourceClick(job, 'job')}
+                    renderRow={(job: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{job.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{job.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{job.completions}</td>
+                            <td className="px-6 py-3 text-gray-400 text-green-400">{job.succeeded}</td>
+                            <td className="px-6 py-3 text-gray-400 text-blue-400">{job.active}</td>
+                            <td className="px-6 py-3 text-gray-400 text-red-400">{job.failed}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={job.age} /></td>
+                        </>
+                    )}
+                />
              )}
 
              {/* CRONJOBS TABLE */}
+             {/* CRONJOBS TABLE */}
              {(activeView === 'cronjobs') && (
-                <motion.div 
-                    key="cronjobs"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Runs Jobs on a time-based schedule.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Schedule', 'Suspend', 'Active', 'Last Schedule', 'Age']}
-                        data={cronJobs}
-                        onRowClick={(cj: any) => handleResourceClick(cj, 'cronjob')}
-                        renderRow={(cj: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{cj.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{cj.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400 font-mono text-xs">{cj.schedule}</td>
-                                <td className="px-6 py-3 text-gray-400">{cj.suspend ? 'True' : 'False'}</td>
-                                <td className="px-6 py-3 text-gray-400">{cj.active}</td>
-                                <td className="px-6 py-3 text-gray-400">{cj.lastScheduleTime ? <TimeAgo timestamp={cj.lastScheduleTime} /> : '-'}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={cj.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="cronjobs"
+                    description="Runs Jobs on a time-based schedule."
+                    headers={['Name', 'Namespace', 'Schedule', 'Suspend', 'Active', 'Last Schedule', 'Age']}
+                    data={cronJobs}
+                    onRowClick={(cj: any) => handleResourceClick(cj, 'cronjob')}
+                    renderRow={(cj: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{cj.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{cj.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400 font-mono text-xs">{cj.schedule}</td>
+                            <td className="px-6 py-3 text-gray-400">{cj.suspend ? 'True' : 'False'}</td>
+                            <td className="px-6 py-3 text-gray-400">{cj.active}</td>
+                            <td className="px-6 py-3 text-gray-400">{cj.lastScheduleTime ? <TimeAgo timestamp={cj.lastScheduleTime} /> : '-'}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={cj.age} /></td>
+                        </>
+                    )}
+                />
              )}
 
              {/* NETWORK: ENDPOINT SLICES */}
+             {/* NETWORK: ENDPOINT SLICES */}
              {(activeView === 'endpointslices') && (
-                <motion.div 
-                    key="endpointslices"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Scalable and extensible way to group network endpoints together.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Address Type', 'Ports', 'Endpoints', 'Age']}
-                        data={endpointSlices}
-                        onRowClick={(es: any) => handleResourceClick(es, 'endpointslice')}
-                        renderRow={(es: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{es.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{es.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{es.addressType}</td>
-                                <td className="px-6 py-3 text-gray-400">{es.ports}</td>
-                                <td className="px-6 py-3 text-gray-400">{es.endpoints}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={es.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="endpointslices"
+                    description="Scalable and extensible way to group network endpoints together."
+                    headers={['Name', 'Namespace', 'Address Type', 'Ports', 'Endpoints', 'Age']}
+                    data={endpointSlices}
+                    onRowClick={(es: any) => handleResourceClick(es, 'endpointslice')}
+                    renderRow={(es: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{es.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{es.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{es.addressType}</td>
+                            <td className="px-6 py-3 text-gray-400">{es.ports}</td>
+                            <td className="px-6 py-3 text-gray-400">{es.endpoints}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={es.age} /></td>
+                        </>
+                    )}
+                />
              )}
 
              {/* NETWORK: ENDPOINTS */}
+             {/* NETWORK: ENDPOINTS */}
              {(activeView === 'endpoints') && (
-                <motion.div 
-                    key="endpoints"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        A list of IP addresses and ports for a Service.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Subsets', 'Age']}
-                        data={endpoints}
-                        onRowClick={(ep: any) => handleResourceClick(ep, 'endpoint')}
-                        renderRow={(ep: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{ep.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{ep.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{ep.subsets}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={ep.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="endpoints"
+                    description="A list of IP addresses and ports for a Service."
+                    headers={['Name', 'Namespace', 'Subsets', 'Age']}
+                    data={endpoints}
+                    onRowClick={(ep: any) => handleResourceClick(ep, 'endpoint')}
+                    renderRow={(ep: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{ep.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{ep.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{ep.subsets}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={ep.age} /></td>
+                        </>
+                    )}
+                />
              )}
 
              {/* NETWORK: INGRESSES */}
+             {/* NETWORK: INGRESSES */}
              {(activeView === 'ingresses') && (
-                <motion.div 
-                    key="ingresses"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Manages external access to the services in a cluster, typically HTTP.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Class', 'Hosts', 'Address', 'Age']}
-                        data={ingresses}
-                        onRowClick={(ing: any) => handleResourceClick(ing, 'ingress')}
-                        renderRow={(ing: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{ing.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{ing.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{ing.class}</td>
-                                <td className="px-6 py-3 text-gray-400 font-mono text-xs">{ing.hosts}</td>
-                                <td className="px-6 py-3 text-gray-400">{ing.address}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={ing.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="ingresses"
+                    description="Manages external access to the services in a cluster, typically HTTP."
+                    headers={['Name', 'Namespace', 'Class', 'Hosts', 'Address', 'Age']}
+                    data={ingresses}
+                    onRowClick={(ing: any) => handleResourceClick(ing, 'ingress')}
+                    renderRow={(ing: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{ing.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{ing.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{ing.class}</td>
+                            <td className="px-6 py-3 text-gray-400 font-mono text-xs">{ing.hosts}</td>
+                            <td className="px-6 py-3 text-gray-400">{ing.address}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={ing.age} /></td>
+                        </>
+                    )}
+                />
              )}
 
              {/* NETWORK: INGRESS CLASSES */}
+             {/* NETWORK: INGRESS CLASSES */}
              {(activeView === 'ingressclasses') && (
-                <motion.div 
-                    key="ingressclasses"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Defines a type of Ingress controller.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Controller', 'API Group', 'Kind', 'Age']}
-                        data={ingressClasses}
-                        onRowClick={(ic: any) => handleResourceClick(ic, 'ingressclass')}
-                        renderRow={(ic: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{ic.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{ic.controller}</td>
-                                <td className="px-6 py-3 text-gray-400">{ic.apiGroup || '-'}</td>
-                                <td className="px-6 py-3 text-gray-400">{ic.kind || '-'}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={ic.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="ingressclasses"
+                    description="Defines a type of Ingress controller."
+                    headers={['Name', 'Controller', 'API Group', 'Kind', 'Age']}
+                    data={ingressClasses}
+                    onRowClick={(ic: any) => handleResourceClick(ic, 'ingressclass')}
+                    renderRow={(ic: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{ic.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{ic.controller}</td>
+                            <td className="px-6 py-3 text-gray-400">{ic.apiGroup || '-'}</td>
+                            <td className="px-6 py-3 text-gray-400">{ic.kind || '-'}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={ic.age} /></td>
+                        </>
+                    )}
+                />
              )}
 
              {/* NETWORK: NETWORK POLICIES */}
+             {/* NETWORK: NETWORK POLICIES */}
              {(activeView === 'networkpolicies') && (
-                <motion.div 
-                    key="networkpolicies"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Controls how groups of Pods are allowed to communicate with each other and other network endpoints.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Pod Selector', 'Policy Types', 'Age']}
-                        data={networkPolicies}
-                        onRowClick={(np: any) => handleResourceClick(np, 'networkpolicy')}
-                        renderRow={(np: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{np.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{np.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{np.podSelector}</td>
-                                <td className="px-6 py-3 text-gray-400">{np.policyTypes}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={np.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="networkpolicies"
+                    description="Controls how groups of Pods are allowed to communicate with each other and other network endpoints."
+                    headers={['Name', 'Namespace', 'Pod Selector', 'Policy Types', 'Age']}
+                    data={networkPolicies}
+                    onRowClick={(np: any) => handleResourceClick(np, 'networkpolicy')}
+                    renderRow={(np: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{np.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{np.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{np.podSelector}</td>
+                            <td className="px-6 py-3 text-gray-400">{np.policyTypes}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={np.age} /></td>
+                        </>
+                    )}
+                />
              )}
 
              {/* STORAGE: PVC */}
+             {/* STORAGE: PVC */}
              {(activeView === 'persistentvolumeclaims') && (
-                <motion.div 
-                    key="pvcs"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        A request for storage by a user.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Namespace', 'Status', 'Volume', 'Capacity', 'Access Modes', 'Storage Class', 'Age']}
-                        data={pvcs}
-                        onRowClick={(pvc: any) => handleResourceClick(pvc, 'persistentvolumeclaim')}
-                        renderRow={(pvc: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{pvc.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{pvc.namespace}</td>
-                                <td className="px-6 py-3 text-gray-400">{pvc.status}</td>
-                                <td className="px-6 py-3 text-gray-400">{pvc.volume}</td>
-                                <td className="px-6 py-3 text-gray-400">{pvc.capacity}</td>
-                                <td className="px-6 py-3 text-gray-400">{pvc.accessModes}</td>
-                                <td className="px-6 py-3 text-gray-400">{pvc.storageClass}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={pvc.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="pvcs"
+                    description="A request for storage by a user."
+                    headers={['Name', 'Namespace', 'Status', 'Volume', 'Capacity', 'Access Modes', 'Storage Class', 'Age']}
+                    data={pvcs}
+                    onRowClick={(pvc: any) => handleResourceClick(pvc, 'persistentvolumeclaim')}
+                    renderRow={(pvc: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{pvc.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{pvc.namespace}</td>
+                            <td className="px-6 py-3 text-gray-400">{pvc.status}</td>
+                            <td className="px-6 py-3 text-gray-400">{pvc.volume}</td>
+                            <td className="px-6 py-3 text-gray-400">{pvc.capacity}</td>
+                            <td className="px-6 py-3 text-gray-400">{pvc.accessModes}</td>
+                            <td className="px-6 py-3 text-gray-400">{pvc.storageClass}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={pvc.age} /></td>
+                        </>
+                    )}
+                />
              )}
 
              {/* STORAGE: PV */}
              {(activeView === 'persistentvolumes') && (
-                <motion.div 
-                    key="pvs"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        A piece of storage in the cluster that has been provisioned.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Capacity', 'Access Modes', 'Reclaim', 'Status', 'Claim', 'Storage Class', 'Age']}
-                        data={pvs}
-                        onRowClick={(pv: any) => handleResourceClick(pv, 'persistentvolume')}
-                        renderRow={(pv: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{pv.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{pv.capacity}</td>
-                                <td className="px-6 py-3 text-gray-400">{pv.accessModes}</td>
-                                <td className="px-6 py-3 text-gray-400">{pv.reclaimPolicy}</td>
-                                <td className="px-6 py-3 text-gray-400">{pv.status}</td>
-                                <td className="px-6 py-3 text-gray-400">{pv.claim}</td>
-                                <td className="px-6 py-3 text-gray-400">{pv.storageClass}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={pv.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="persistentvolumes"
+                    description="A piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using Storage Classes."
+                    headers={['Name', 'Capacity', 'Access Modes', 'Reclaim', 'Status', 'Claim', 'Storage Class', 'Age']}
+                    data={pvs}
+                    onRowClick={(pv: any) => handleResourceClick(pv, 'persistentvolume')}
+                    renderRow={(pv: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{pv.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{pv.capacity}</td>
+                            <td className="px-6 py-3 text-gray-400">{pv.accessModes}</td>
+                            <td className="px-6 py-3 text-gray-400">{pv.reclaimPolicy}</td>
+                            <td className="px-6 py-3 text-gray-400">{pv.status}</td>
+                            <td className="px-6 py-3 text-gray-400">{pv.claim}</td>
+                            <td className="px-6 py-3 text-gray-400">{pv.storageClass}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={pv.age} /></td>
+                        </>
+                    )}
+                />
              )}
 
              {/* STORAGE: STORAGE CLASSES */}
              {(activeView === 'storageclasses') && (
-                <motion.div 
-                    key="storageclasses"
-                    initial="initial"
-                    animate="in"
-                    exit="out"
-                    variants={pageVariants}
-                    transition={pageTransition}
-                    className="mb-8"
-                >
-                    <p className="text-sm text-gray-400 mb-4">
-                        Describes the classes of storage offered by the cluster.
-                    </p>
-                    <ResourceTable 
-                        headers={['Name', 'Provisioner', 'Reclaim Policy', 'Volume Binding Mode', 'Age']}
-                        data={storageClasses}
-                        onRowClick={(sc: any) => handleResourceClick(sc, 'storageclass')}
-                        renderRow={(sc: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{sc.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{sc.provisioner}</td>
-                                <td className="px-6 py-3 text-gray-400">{sc.reclaimPolicy}</td>
-                                <td className="px-6 py-3 text-gray-400">{sc.volumeBindingMode}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={sc.age} /></td>
-                            </>
-                        )}
-                    />
-                </motion.div>
+                <GenericResourceView 
+                    viewKey="storageclasses"
+                    description="Describes the classes of storage offered by the cluster."
+                    headers={['Name', 'Provisioner', 'Reclaim Policy', 'Volume Binding Mode', 'Age']}
+                    data={storageClasses}
+                    onRowClick={(sc: any) => handleResourceClick(sc, 'storageclass')}
+                    renderRow={(sc: any) => (
+                        <>
+                            <td className="px-6 py-3 font-medium text-gray-200">{sc.name}</td>
+                            <td className="px-6 py-3 text-gray-400">{sc.provisioner}</td>
+                            <td className="px-6 py-3 text-gray-400">{sc.reclaimPolicy}</td>
+                            <td className="px-6 py-3 text-gray-400">{sc.volumeBindingMode}</td>
+                            <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={sc.age} /></td>
+                        </>
+                    )}
+                />
              )}
          </AnimatePresence>
 
@@ -1417,23 +1113,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                     >
                         <PenTool size={18} />
                     </button>
-                )}
-                {/* Tabs for Supported Types */}
-                {(['deployment', 'pod', 'service', 'replicaset', 'daemonset', 'statefulset', 'job', 'cronjob'].includes(selectedResource?.type)) && (
-                    <div className="flex items-center bg-black/40 rounded-lg p-1 border border-white/10 mr-4">
-                        <button
-                            onClick={() => setDrawerTab('details')}
-                            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${drawerTab === 'details' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                        >
-                            Details
-                        </button>
-                        <button
-                            onClick={() => setDrawerTab('topology')}
-                            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${drawerTab === 'topology' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
-                        >
-                            Topology
-                        </button>
-                    </div>
                 )}
                 
                 {selectedResource?.type === 'deployment' && (
@@ -1469,121 +1148,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
 
                 {/* Details View */}
                 {drawerTab === 'details' && (
-                  <>
-                    {selectedResource?.type === 'deployment' && (
-                        <DeploymentDetails 
-                            deployment={detailedResource} 
-                            explanation={explanation} 
-                            onExplain={() => handleExplain(selectedResource)}
-                            isExplaining={isExplaining}
-                        />
-                    )}
-                    {selectedResource?.type === 'replicaset' && (
-                        <ReplicaSetDetails 
-                            replicaSet={detailedResource} 
-                            explanation={explanation} 
-                            onExplain={() => handleExplain(selectedResource)}
-                            isExplaining={isExplaining}
-                            onNavigate={handleNavigate}
-                        />
-                    )}
-                    {selectedResource?.type === 'daemonset' && (
-                        <DaemonSetDetails 
-                            daemonSet={detailedResource} 
-                            explanation={explanation} 
-                            onExplain={() => handleExplain(selectedResource)}
-                            isExplaining={isExplaining}
-                        />
-                    )}
-                    {selectedResource?.type === 'statefulset' && (
-                        <StatefulSetDetails 
-                            statefulSet={detailedResource} 
-                            explanation={explanation} 
-                            onExplain={() => handleExplain(selectedResource)}
-                            isExplaining={isExplaining}
-                        />
-                    )}
-                    {selectedResource?.type === 'job' && (
-                        <JobDetails 
-                            job={detailedResource} 
-                            explanation={explanation} 
-                            onExplain={() => handleExplain(selectedResource)}
-                            isExplaining={isExplaining}
-                        />
-                    )}
-                    {selectedResource?.type === 'cronjob' && (
-                        <CronJobDetails 
-                            cronJob={detailedResource} 
-                            explanation={explanation} 
-                            onExplain={() => handleExplain(selectedResource)}
-                            isExplaining={isExplaining}
-                        />
-                    )}
-                    {selectedResource?.type === 'service' && (
-                        <ServiceDetails 
-                            resource={detailedResource} 
-                            clusterName={clusterName}
-                            explanation={explanation}
-                            onExplain={() => handleExplain(selectedResource)}
-                            isExplaining={isExplaining}
-                        />
-                    )}
-                    {selectedResource?.type === 'pod' && (
-                        <PodDetails 
-                            pod={detailedResource} 
-                            explanation={explanation} 
-                            onOpenLogs={(container) => handleOpenLogs(detailedResource, container)} 
-                            onExplain={() => handleExplain(selectedResource)}
-                            isExplaining={isExplaining}
-                            onNavigate={handleNavigate}
-                        />
-                    )}
-                    {selectedResource?.type === 'clusterrolebinding' && (
-                        <ClusterRoleBindingDetails resource={detailedResource} />
-                    )}
-                    {selectedResource?.type === 'rolebinding' && (
-                        <RoleBindingDetails resource={detailedResource} />
-                    )}
-                    {selectedResource?.type === 'serviceaccount' && (
-                        <ServiceAccountDetails resource={detailedResource} />
-                    )}
-                    {selectedResource?.type === 'role' && (
-                        <RoleDetails resource={detailedResource} />
-                    )}
-                    {selectedResource?.type === 'node' && (
-                        <NodeDetails node={detailedResource} />
-                    )}
-                    {selectedResource?.type === 'crd-definition' && (
-                        <CrdDetails 
-                            crd={detailedResource} 
-                            explanation={explanation}
-                            // Note: CrdDetails also needs updates if we want the button there, ignoring for now as per user request scope
-                        />
-                    )}
-                    {selectedResource?.type === 'custom-resource' && (
-                        <GenericResourceDetails 
-                            resource={detailedResource} 
-                            explanation={explanation}
-                            onExplain={() => handleExplain(selectedResource)}
-                            isExplaining={isExplaining}
-                        />
-                    )}
-                    {(selectedResource?.type === 'endpointslice' || 
-                      selectedResource?.type === 'endpoint' || 
-                      selectedResource?.type === 'ingress' || 
-                      selectedResource?.type === 'ingressclass' || 
-                      selectedResource?.type === 'networkpolicy' || 
-                      selectedResource?.type === 'persistentvolumeclaim' || 
-                      selectedResource?.type === 'persistentvolume' || 
-                      selectedResource?.type === 'storageclass') && (
-                        <GenericResourceDetails 
-                            resource={detailedResource} 
-                            explanation={explanation}
-                            onExplain={() => handleExplain(selectedResource)}
-                            isExplaining={isExplaining}
-                        />
-                    )}
-                  </>
+                  <DrawerDetailsRenderer 
+                      selectedResource={selectedResource}
+                      detailedResource={detailedResource}
+                      explanation={explanation}
+                      isExplaining={isExplaining}
+                      clusterName={clusterName}
+                      onExplain={handleExplain}
+                      onNavigate={handleNavigate}
+                      onOpenLogs={handleOpenLogs}
+                      onShowTopology={() => setDrawerTab('topology')}
+                  />
                 )}
                 </>
             ) : (
@@ -1610,55 +1185,4 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
   );
 }
 
-const ResourceTable = ({ headers, data, renderRow, onRowClick, sortConfig, onSort }: any) => {
-    if (data.length === 0) {
-        return <div className="p-8 text-center text-gray-400 bg-white/5 rounded-xl border border-white/10 italic">No resources found.</div>
-    }
-
-    // Normalize headers to objects if they are strings (backward compatibility)
-    const normalizedHeaders = headers.map((h: any) => 
-        typeof h === 'string' ? { label: h } : h
-    );
-
-    return (
-        <div className="overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur-md shadow-lg">
-            <table className="w-full text-left text-sm border-collapse">
-            <thead className="bg-white/5 border-b border-white/10">
-                <tr>
-                {normalizedHeaders.map((h: any, idx: number) => (
-                    <th 
-                        key={idx} 
-                        className={`px-6 py-4 font-semibold text-gray-300 uppercase tracking-wider text-xs ${h.sortable ? 'cursor-pointer hover:text-white select-none' : ''}`}
-                        onClick={() => h.sortable && onSort && onSort(h.key)}
-                    >
-                        <div className="flex items-center gap-2">
-                            {h.label}
-                            {h.sortable && sortConfig?.key === h.key && (
-                                sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
-                            )}
-                        </div>
-                    </th>
-                ))}
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-                {data.map((item: any) => (
-                    <tr 
-                        key={`${item.namespace}-${item.name}`} 
-                        className={`group hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 ${onRowClick ? 'cursor-pointer active:bg-white/10' : ''}`}
-                        onClick={() => onRowClick && onRowClick(item)}
-                    >
-                        {renderRow(item)}
-                    </tr>
-                ))}
-            </tbody>
-            </table>
-        </div>
-    )
-}
-
-const StatusBadge = ({ condition }: { condition: boolean }) => (
-    <span className={`px-2 py-0.5 rounded text-xs ${condition ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
-        {condition ? 'Active' : 'Pending'}
-    </span>
-)
+// ResourceTable and StatusBadge moved to shared components

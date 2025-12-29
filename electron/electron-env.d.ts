@@ -30,6 +30,8 @@ interface Window {
     getDeployments: (contextName: string, namespaces?: string[]) => Promise<Array<{ name: string; namespace: string; replicas: number; availableReplicas: number }>>
     getDeployment: (contextName: string, namespace: string, name: string) => Promise<any>
     scaleDeployment: (contextName: string, namespace: string, name: string, replicas: number) => Promise<any>
+    getDeploymentYaml: (contextName: string, namespace: string, name: string) => Promise<string>
+    updateDeploymentYaml: (contextName: string, namespace: string, name: string, yamlString: string) => Promise<any>
     getPods: (contextName: string, namespaces?: string[]) => Promise<Array<{ name: string; namespace: string; status: string; restarts: number; age: string }>>
     getPod: (contextName: string, namespace: string, name: string) => Promise<any>
     getReplicaSets: (contextName: string, namespaces?: string[]) => Promise<Array<{ name: string; namespace: string; desired: number; current: number; ready: number }>>

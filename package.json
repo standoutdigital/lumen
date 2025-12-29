@@ -2,7 +2,7 @@
   "name": "k8ptain",
   "productName": "Lumen",
   "private": true,
-  "version": "0.0.1-alpha-20251228",
+  "version": "0.0.1-alpha-20251229",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
   "dependencies": {
     "@google/genai": "^1.34.0",
     "@kubernetes/client-node": "^1.4.0",
+    "@monaco-editor/react": "^4.7.0",
     "@types/js-yaml": "^4.0.9",
     "@xyflow/react": "^12.10.0",
     "clsx": "^2.1.1",

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Sidebar } from './components/Sidebar'
-import { SecondarySidebar } from './components/SecondarySidebar'
+import { Sidebar } from './components/features/sidebar/Sidebar'
+import { SecondarySidebar } from './components/features/sidebar/SecondarySidebar'
 import { Dashboard } from './components/Dashboard'
-import { Settings } from './components/Settings'
-import { LogViewer, PanelTab } from './components/LogViewer'
-import { StatusBar } from './components/StatusBar'
-import { BottomPanel } from './components/BottomPanel'
-import { ToastNotification } from './components/ToastNotification'
+import { Settings } from './components/features/settings/Settings'
+import { LogViewer, PanelTab } from './components/features/logs/LogViewer'
+import { StatusBar } from './components/features/layout/StatusBar'
+import { BottomPanel } from './components/features/layout/BottomPanel'
+import { ToastNotification } from './components/shared/ToastNotification'
 import { AnimatePresence } from 'framer-motion'
 
 function App() {
@@ -23,6 +23,7 @@ function App() {
   
   // Bottom Panel State
   const [isBottomPanelOpen, setIsBottomPanelOpen] = useState(false);
+  const [bottomPanelHeight, setBottomPanelHeight] = useState(300);
 
   // Toast State
   const [toasts, setToasts] = useState<{id: string; message: string; type?: 'success'|'error'|'info'}[]>([]);
@@ -54,6 +55,7 @@ function App() {
   const handleClusterSelect = (clusterName: string) => {
       setSelectedCluster(clusterName);
       setResourceView('overview');
+      setActiveView('dashboard');
   };
 
   const handleOpenLogs = (pod: any, containerName: string) => {
@@ -208,7 +210,10 @@ function App() {
 
       <div className="flex-1 flex overflow-hidden p-4 gap-4 pb-0"> 
           {/* Main Sidebar & Content Container */}
-          <div className="flex flex-1 overflow-hidden gap-4 pb-4">
+          <div 
+            className="flex flex-1 overflow-hidden gap-4 pb-4 transition-[padding] duration-100 ease-out"
+            style={{ paddingBottom: isBottomPanelOpen ? bottomPanelHeight : 16 }} // 16px is pb-4 equivalent
+          >
               {/* Floating Glass Sidebar Container */}
               <div className="flex rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-white/5 backdrop-blur-xl h-full flex-shrink-0">
                 <Sidebar activeView={activeView} onChangeView={handleMainMenuChange} />
@@ -222,7 +227,6 @@ function App() {
                 />
               </div>
 
-              {/* Main Content Area */}
               <main className="flex-1 flex flex-col h-full overflow-hidden relative">
                 <div className="flex-1 min-h-0 w-full relative rounded-2xl overflow-hidden border border-white/5">
                 {activeView === 'settings' ? (
@@ -255,6 +259,8 @@ function App() {
       <BottomPanel 
         isVisible={isBottomPanelOpen} 
         onClose={() => setIsBottomPanelOpen(false)}
+        height={bottomPanelHeight}
+        onHeightChange={setBottomPanelHeight}
       >
          <LogViewer
              tabs={panelTabs}
