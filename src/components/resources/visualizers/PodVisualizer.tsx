@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutGrid, Server } from 'lucide-react';
+import { LayoutGrid, Server, RefreshCw } from 'lucide-react';
 import { TimeAgo } from '../../shared/TimeAgo';
 
 interface PodVisualizerProps {
@@ -10,8 +10,9 @@ interface PodVisualizerProps {
 
 // Custom hook to measure element size
 const useResizeObserver = (ref: React.RefObject<HTMLElement>) => {
-    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-    
+    // Initialize with window width as fallback to prevent 0-width layout failure
+    const [dimensions, setDimensions] = useState({ width: window.innerWidth > 0 ? window.innerWidth : 1000, height: 0 });
+
     useEffect(() => {
         const element = ref.current;
         if (!element) return;
@@ -19,26 +20,29 @@ const useResizeObserver = (ref: React.RefObject<HTMLElement>) => {
         const observer = new ResizeObserver((entries) => {
             if (entries[0]) {
                 const { width, height } = entries[0].contentRect;
-                setDimensions({ width, height });
+                // Only update if width > 0 to avoid collapsing grid
+                if (width > 0) {
+                    setDimensions({ width, height });
+                }
             }
         });
-        
+
         observer.observe(element);
         return () => observer.disconnect();
     }, [ref]);
-    
+
     return dimensions;
 };
 
-// Hexagon Component
-const Hexagon: React.FC<{ 
-    status: string; 
-    name: string; 
+// Hexagon Component - Memoized
+const Hexagon: React.FC<{
+    status: string;
+    name: string;
     onClick?: () => void;
     onMouseEnter?: (e: React.MouseEvent) => void;
     onMouseLeave?: () => void;
     style?: React.CSSProperties;
-}> = ({ status, name, onClick, onMouseEnter, onMouseLeave, style }) => {
+}> = React.memo(({ status, name, onClick, onMouseEnter, onMouseLeave, style }) => {
     let bgClass = 'bg-white/5 border-white/10';
     let glowClass = '';
 
@@ -54,9 +58,9 @@ const Hexagon: React.FC<{
     } else {
         bgClass = 'bg-gray-700';
     }
-    
+
     return (
-        <div 
+        <div
             className="absolute group w-14 h-16 cursor-pointer transition-transform hover:scale-110 z-0 hover:z-10"
             style={style}
             title={name}
@@ -64,199 +68,212 @@ const Hexagon: React.FC<{
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
         >
-            <div 
+            <div
                 className={`w-full h-full ${bgClass} ${glowClass} transition-all duration-300 clip-hex border-2 border-transparent`}
                 style={{ clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)' }}
             />
         </div>
     );
-};
+}, (prev, next) => {
+    // Custom comparison to really avoid re-renders if core props match
+    return prev.status === next.status && prev.name === next.name && prev.style?.left === next.style?.left && prev.style?.top === next.style?.top;
+});
+Hexagon.displayName = 'Hexagon';
 
 // Tooltip Component
-const PodTooltip: React.FC<{ pod: any; position: { x: number; y: number } }> = ({ pod, position }) => (
-    <div 
+const PodTooltip: React.FC<{ pod: any; position: { x: number; y: number } }> = React.memo(({ pod, position }) => (
+    <div
         className="fixed z-50 pointer-events-none bg-gray-900 border border-white/10 rounded-lg shadow-xl px-3 py-2 text-sm text-gray-200 transform -translate-x-1/2 -translate-y-[120%]"
         style={{ left: position.x, top: position.y }}
     >
-        <div className="font-semibold mb-1">{pod.metadata.name}</div>
+        <div className="font-semibold mb-1">{pod.metadata?.name || pod.name}</div>
         <div className="flex items-center gap-2 text-xs text-gray-400">
             <span className={pod.status === 'Running' ? 'text-green-400' : 'text-yellow-400'}>
                 {pod.status}
             </span>
             <span>•</span>
-            <TimeAgo timestamp={pod.age} />
+            <TimeAgo timestamp={pod.age || pod.metadata?.creationTimestamp} />
         </div>
     </div>
-);
+));
+PodTooltip.displayName = 'PodTooltip';
 
-export const PodVisualizer: React.FC<PodVisualizerProps> = ({ pods, nodes = [] }) => {
+export const PodVisualizer: React.FC<PodVisualizerProps> = ({ pods: livePods, nodes = [] }) => {
+    const [snapshotPods, setSnapshotPods] = useState<any[]>([]);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [grouping, setGrouping] = useState<'none' | 'node'>('none');
     const containerRef = useRef<HTMLDivElement>(null);
     const { width: containerWidth } = useResizeObserver(containerRef);
     const [hoveredPod, setHoveredPod] = useState<{ pod: any; x: number; y: number } | null>(null);
 
+    // Initial load - snapshot live data if we don't have it yet
+    useEffect(() => {
+        if (snapshotPods.length === 0 && livePods.length > 0) {
+            setSnapshotPods(livePods);
+        }
+    }, [livePods, snapshotPods.length]);
+
+    // Refresh Handler
+    const handleRefresh = useCallback(() => {
+        console.log(`[PodVisualizer] Manual refresh triggered. Updating snapshot with ${livePods.length} pods.`);
+        setIsRefreshing(true);
+        setSnapshotPods(livePods);
+        setTimeout(() => setIsRefreshing(false), 500);
+    }, [livePods]);
+
     // Grouping Logic
     const groupedPods = useMemo(() => {
+        const currentPods = snapshotPods;
+
         if (grouping === 'none') {
-            return { 'All Pods': pods };
+            return { 'All Pods': currentPods };
         }
-        
+
         const groups: Record<string, any[]> = {};
         nodes.forEach(node => { groups[node.name] = []; });
         groups['Unassigned'] = [];
 
-        pods.forEach(pod => {
-            const nodeName = pod.spec?.nodeName || 'Unassigned';
+        currentPods.forEach(pod => {
+            if (!pod) return;
+            // Handle both k8s structure and flattened structure from dashboard
+            const nodeName = pod.spec?.nodeName || pod.node || pod.nodeName || 'Unassigned';
+
             if (!groups[nodeName]) groups[nodeName] = [];
             groups[nodeName].push(pod);
         });
 
         if (groups['Unassigned'].length === 0) delete groups['Unassigned'];
         return groups;
-    }, [pods, nodes, grouping]);
+    }, [snapshotPods, nodes, grouping]);
 
     // Layout config
-    const HEX_WIDTH = 56; // 3.5rem equivalent roughly (w-14)
-    const HEX_HEIGHT = 64; // h-16
-    const GAP = 4; // space between
-    
-    // Calculate layout for a list of items
-    const calculateHeights = (groups: Record<string, any[]>) => {
-        if (containerWidth === 0) return {};
-        
-        // Effective width for calculation
-        // Padding is px-4 (16px left + 16px right) = 32px
-        const contentWidth = containerWidth - 32; 
-        
-        // Calculate columns
-        // Each column takes HEX_WIDTH + GAP?
-        // Honeycomb spacing: 
-        // Horizontal distance between centers is HEX_WIDTH + GAP?
-        // Actually, for honeycomb, horizontal spacing is full width usually.
-        // Let's settle on: x = col * (Width + Gap).
-        // If we want tight packing, we can overlap slightly but GAP is safer.
+    const HEX_WIDTH = 56;
+    const HEX_HEIGHT = 64;
+    const GAP = 4;
+    const HEADER_HEIGHT = 40;
+
+    // Memoized layout calculation
+    const layout = useMemo(() => {
+        if (containerWidth === 0) return { groupHeights: {}, cols: 0 };
+
+        const contentWidth = Math.max(containerWidth - 32, 300);
         const colWidth = HEX_WIDTH + GAP;
         const cols = Math.max(1, Math.floor(contentWidth / colWidth));
-        
+
         const groupHeights: Record<string, number> = {};
-        
-        Object.entries(groups).forEach(([groupName, groupPods]) => {
+
+        Object.entries(groupedPods).forEach(([groupName, groupPods]) => {
             const count = groupPods.length;
             if (count === 0) {
-                groupHeights[groupName] = 40; // minimal height for header/empty msg
+                groupHeights[groupName] = HEADER_HEIGHT + 20;
                 return;
             }
-            
-            
-            // Calculate height needed
-            // Height = rows * (Height * 0.75 usually for honeycomb overlap)
-            // Vertical spacing: (HEX_HEIGHT * 0.75 + GAP)
-            // We need to actually run the loop to find max Y
-            
-            let maxY = 0;
-            for(let i=0; i<count; i++) {
-                const row = Math.floor(i / cols);
-                const y = row * (HEX_HEIGHT * 0.80); // 0.8 factor for slight overlap/honeycomb vertical
-                if (y + HEX_HEIGHT > maxY) maxY = y + HEX_HEIGHT;
-            }
-            
-            // Add header height (approx 40px) + padding
-            groupHeights[groupName] = maxY + 60; 
+
+            const lastRow = Math.max(0, Math.floor((count - 1) / cols));
+            const y = lastRow * (HEX_HEIGHT * 0.80);
+            const maxY = y + HEX_HEIGHT;
+
+            groupHeights[groupName] = maxY + HEADER_HEIGHT + 20;
         });
-        
+
         return { groupHeights, cols };
-    };
+    }, [groupedPods, containerWidth]);
 
-    const layout = useMemo(() => calculateHeights(groupedPods), [groupedPods, containerWidth]);
-
-    const renderGroup = (groupPods: any[], cols: number) => {
+    const renderGroup = useCallback((groupPods: any[], cols: number) => {
         if (!cols) return null;
         const colWidth = HEX_WIDTH + GAP;
-        
+
         return groupPods.map((pod, i) => {
+            if (!pod) return null;
+            // Handle flattened structure
+            const podName = pod.metadata?.name || pod.name;
+            const podUid = pod.metadata?.uid || podName;
+
+            if (!podName) return null;
+
             const row = Math.floor(i / cols);
             const col = i % cols;
-            
-            // Honeycomb Offset: Every second row (odd row index) is indented by half width
+
             const xOffset = (row % 2 === 1) ? (colWidth / 2) : 0;
-            
+
             const left = col * colWidth + xOffset;
-            const top = row * (HEX_HEIGHT * 0.80); // 80% of height for spacing
-            
+            const top = row * (HEX_HEIGHT * 0.80) + HEADER_HEIGHT;
+
             return (
-                <Hexagon 
-                    key={pod.metadata.uid || pod.metadata.name} 
-                    name={pod.metadata.name}
+                <Hexagon
+                    key={podUid}
+                    name={podName}
                     status={pod.status}
                     style={{ left, top }}
                     onMouseEnter={(e) => {
                         const rect = (e.target as HTMLElement).getBoundingClientRect();
-                        setHoveredPod({ 
-                            pod, 
-                            x: rect.left + rect.width / 2, 
-                            y: rect.top 
+                        setHoveredPod({
+                            pod,
+                            x: rect.left + rect.width / 2,
+                            y: rect.top
                         });
                     }}
                     onMouseLeave={() => setHoveredPod(null)}
-                    onClick={() => {
-                        // Handle click
-                    }}
                 />
             );
         });
-    };
+    }, [HEX_WIDTH, GAP, HEX_HEIGHT, HEADER_HEIGHT]);
 
     return (
-        <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex flex-col h-full bg-transparent overflow-hidden relative"
+        <div
+            className="flex flex-col h-auto bg-transparent relative"
         >
             {/* Toolbar */}
-            <div className="flex items-center justify-end p-4 pb-0 mb-4 z-20">
-                <div className="flex bg-black/40 p-1 rounded-lg border border-white/10 backdrop-blur-md">
+            <div className="flex items-center justify-end p-4 pb-0 mb-4 z-20 sticky top-0">
+                <div className="flex bg-black/40 p-1 rounded-lg border border-white/10 backdrop-blur-md gap-2">
+                    <button
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                        className={`p-1.5 rounded-md text-gray-400 hover:text-white transition-all ${isRefreshing ? 'animate-spin text-blue-400' : ''}`}
+                        title="Refresh Snapshot"
+                    >
+                        <RefreshCw size={14} />
+                    </button>
+                    <div className="w-[1px] bg-white/10 mx-1" />
                     <button
                         onClick={() => setGrouping('none')}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all ${
-                            grouping === 'none' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-gray-400 hover:text-white'
-                        }`}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all ${grouping === 'none' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-gray-400 hover:text-white'
+                            }`}
                     >
                         <LayoutGrid size={12} /> None
                     </button>
                     <button
                         onClick={() => setGrouping('node')}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all ${
-                            grouping === 'node' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-gray-400 hover:text-white'
-                        }`}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all ${grouping === 'node' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-gray-400 hover:text-white'
+                            }`}
                     >
                         <Server size={12} /> Group by Node
                     </button>
                 </div>
             </div>
 
-            {/* Grid Content */}
-            <div 
-                className="flex-1 overflow-y-auto px-4 pb-8 custom-scrollbar relative" 
+            {/* Grid Content - Auto Height */}
+            <div
+                className="w-full px-4 pb-8 relative"
                 ref={containerRef}
             >
                 {Object.entries(groupedPods).map(([groupName, groupPods]) => {
                     const height = layout.groupHeights?.[groupName] || 100;
-                    
+
                     return (
                         <div key={groupName} className="mb-8 relative" style={{ height }}>
                             {(grouping !== 'none' || groupName === 'All Pods') && (
-                                 <h3 className="text-sm font-semibold text-gray-400 mb-6 flex items-center gap-2 border-b border-white/5 pb-2 ml-1">
-                                    {grouping === 'none' ? <LayoutGrid size={14} className="text-blue-400"/> : <Server size={14} className="text-purple-400"/>} 
-                                    {groupName} 
+                                <h3 className="text-sm font-semibold text-gray-400 mb-6 flex items-center gap-2 border-b border-white/5 pb-2 ml-1 absolute top-0 left-0 right-0 h-10">
+                                    {grouping === 'none' ? <LayoutGrid size={14} className="text-blue-400" /> : <Server size={14} className="text-purple-400" />}
+                                    {groupName}
                                     <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded-full text-gray-500 font-normal border border-white/5">
                                         {groupPods.length}
                                     </span>
-                                 </h3>
+                                </h3>
                             )}
-                            
+
                             {groupPods.length === 0 ? (
-                                <div className="text-gray-700 italic text-xs p-4 text-center border border-dashed border-white/5 rounded-lg">
+                                <div className="text-gray-700 italic text-xs p-4 text-center border border-dashed border-white/5 rounded-lg absolute top-12 w-full">
                                     No pods
                                 </div>
                             ) : (
@@ -277,18 +294,18 @@ export const PodVisualizer: React.FC<PodVisualizerProps> = ({ pods, nodes = [] }
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
                         className="fixed z-50 pointer-events-none"
-                        style={{ left: 0, top: 0 }} // Position handled in component
+                        style={{ left: 0, top: 0 }}
                     >
                         <PodTooltip pod={hoveredPod.pod} position={{ x: hoveredPod.x, y: hoveredPod.y }} />
                     </motion.div>
                 )}
             </AnimatePresence>
-            
+
             <style>{`
                 .clip-hex {
                     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
                 }
             `}</style>
-        </motion.div>
+        </div>
     );
 };

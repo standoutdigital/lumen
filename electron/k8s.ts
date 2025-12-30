@@ -358,7 +358,8 @@ export class K8sService {
                     restartCount: c.restartCount
                 })),
                 metadata: pod.metadata,
-                spec: pod.spec
+                spec: pod.spec,
+                node: pod.spec?.nodeName
             };
         });
     }
@@ -450,7 +451,10 @@ export class K8sService {
                             ready: c.ready,
                             image: c.image,
                             restartCount: c.restartCount
-                        }))
+                        })),
+                        metadata: apiObj.metadata,
+                        spec: apiObj.spec,
+                        node: apiObj.spec?.nodeName
                     };
                     onEvent(type, pod);
                 }
