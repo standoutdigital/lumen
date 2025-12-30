@@ -1,13 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ResourceTable } from '../../shared/ResourceTable';
+import { VirtualizedTable, IColumn } from '../../shared/VirtualizedTable';
 
 interface GenericResourceViewProps {
     title?: string; // Optional override, usually handled by header
     description?: string;
-    headers: (string | { label: string; key?: string; sortable?: boolean })[]; // Support simple strings or objects
+    columns: IColumn[];
     data: any[];
-    renderRow: (item: any) => React.ReactNode;
     onRowClick?: (item: any) => void;
     sortConfig?: { key: string; direction: 'asc' | 'desc' } | null;
     onSort?: (key: string) => void;
@@ -16,9 +15,8 @@ interface GenericResourceViewProps {
 
 export const GenericResourceView: React.FC<GenericResourceViewProps> = ({
     description,
-    headers,
+    columns,
     data,
-    renderRow,
     onRowClick,
     sortConfig,
     onSort,
@@ -37,28 +35,29 @@ export const GenericResourceView: React.FC<GenericResourceViewProps> = ({
     };
 
     return (
-        <motion.div 
+        <motion.div
             key={viewKey}
             initial="initial"
             animate="in"
             exit="out"
             variants={pageVariants}
             transition={pageTransition as any}
-            className="mb-8"
+            className="mb-8 flex flex-col h-full"
         >
             {description && (
-                <p className="text-sm text-gray-400 mb-4">
+                <p className="text-sm text-gray-400 mb-4 flex-none">
                     {description}
                 </p>
             )}
-            <ResourceTable 
-                headers={headers}
-                data={data}
-                renderRow={renderRow}
-                onRowClick={onRowClick}
-                sortConfig={sortConfig}
-                onSort={onSort}
-            />
+            <div className="flex-1 min-h-0">
+                <VirtualizedTable
+                    columns={columns}
+                    data={data}
+                    onRowClick={onRowClick}
+                    sortConfig={sortConfig}
+                    onSort={onSort}
+                />
+            </div>
         </motion.div>
     );
 };

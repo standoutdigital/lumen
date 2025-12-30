@@ -698,23 +698,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                     <GenericResourceView
                         viewKey="nodes"
                         description="The physical or virtual machines that make up the cluster."
-                        headers={['Name', 'Status', 'Roles', 'Version', 'Age']}
+                        columns={[
+                            { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                            { label: 'Status', dataKey: 'status', width: 100, flexGrow: 0, cellRenderer: (status) => <span className={`px-2 py-0.5 rounded text-xs ${status === 'Ready' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>{status}</span> },
+                            { label: 'Roles', dataKey: 'roles', flexGrow: 1, cellRenderer: (roles) => <span className="text-gray-400">{roles}</span> },
+                            { label: 'Version', dataKey: 'version', width: 120, flexGrow: 0, cellRenderer: (version) => <span className="text-gray-400">{version}</span> },
+                            { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                        ]}
                         data={nodes}
                         onRowClick={(node: any) => handleResourceClick(node, 'node')}
-                        renderRow={(node: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{node.name}</td>
-                                <td className="px-6 py-3">
-                                    <span className={`px-2 py-0.5 rounded text-xs ${node.status === 'Ready' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-                                        }`}>
-                                        {node.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-3 text-gray-400">{node.roles}</td>
-                                <td className="px-6 py-3 text-gray-400">{node.version}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={node.age} /></td>
-                            </>
-                        )}
                     />
                 )}
 
@@ -724,15 +716,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                     <GenericResourceView
                         viewKey={`crd-${currentCrdKind}`}
                         description={currentCrdKind || 'Custom Resources'}
-                        headers={['Name', 'Namespace', 'Age']}
+                        headers={['Name', 'Namespace', 'Age']} // This one actually uses headers in original, wait no I am replacing GenericResourceView props.
+                        // Wait, GenericResourceView NO LONGER accepts headers. I MUST replace it with columns.
+                        columns={[
+                            { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                            { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns || '-'}</span> },
+                            { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                        ]}
                         data={customObjects}
-                        renderRow={(obj: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{obj.name}</td>
-                                <td className="px-6 py-3 text-gray-400">{obj.namespace || '-'}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={obj.age} /></td>
-                            </>
-                        )}
                         onRowClick={(obj: any) => handleResourceClick(obj, 'custom-resource')}
                     />
                 )}
@@ -743,18 +734,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                     <GenericResourceView
                         viewKey="crd-definitions"
                         description="Definitions of Custom Resources installed in the cluster."
-                        headers={['Name', 'Group', 'Kind', 'Scope', 'Age']}
+                        columns={[
+                            { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                            { label: 'Group', dataKey: 'group', flexGrow: 1, cellRenderer: (g) => <span className="text-blue-400">{g}</span> },
+                            { label: 'Kind', dataKey: 'kind', flexGrow: 1, cellRenderer: (k) => <span className="text-gray-300">{k}</span> },
+                            { label: 'Scope', dataKey: 'scope', width: 100, flexGrow: 0, cellRenderer: (s) => <span className="text-gray-400">{s}</span> },
+                            { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                        ]}
                         data={crdDefinitions}
                         onRowClick={(crd: any) => handleResourceClick(crd, 'crd-definition')}
-                        renderRow={(crd: any) => (
-                            <>
-                                <td className="px-6 py-3 font-medium text-gray-200">{crd.name}</td>
-                                <td className="px-6 py-3 text-blue-400">{crd.group}</td>
-                                <td className="px-6 py-3 text-gray-300">{crd.kind}</td>
-                                <td className="px-6 py-3 text-gray-400">{crd.scope}</td>
-                                <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={crd.age} /></td>
-                            </>
-                        )}
                     />
                 )}
 
@@ -786,19 +774,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="deployments"
                             description="Manage your application deployments and scaling strategies."
-                            headers={['Name', 'Namespace', 'Replicas', 'Status']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Replicas', dataKey: 'replicas', width: 100, flexGrow: 0, cellRenderer: (r, dep) => <span className="text-gray-400">{dep.availableReplicas || 0} / {dep.replicas || 0}</span> },
+                                { label: 'Status', dataKey: 'status', width: 100, flexGrow: 0, cellRenderer: (_, dep) => <StatusBadge condition={dep.availableReplicas === dep.replicas && dep.replicas > 0} /> }
+                            ]}
                             data={deployments}
                             onRowClick={(dep: any) => handleResourceClick(dep, 'deployment')}
-                            renderRow={(dep: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{dep.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{dep.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{dep.availableReplicas || 0} / {dep.replicas || 0}</td>
-                                    <td className="px-6 py-3">
-                                        <StatusBadge condition={dep.availableReplicas === dep.replicas && dep.replicas > 0} />
-                                    </td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -821,18 +804,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="replicasets"
                             description="Ensures a specified number of pod replicas are running at any given time."
-                            headers={['Name', 'Namespace', 'Desired', 'Current', 'Ready']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Desired', dataKey: 'desired', width: 80, flexGrow: 0, cellRenderer: (d) => <span className="text-gray-400">{d}</span> },
+                                { label: 'Current', dataKey: 'current', width: 80, flexGrow: 0, cellRenderer: (c) => <span className="text-gray-400">{c}</span> },
+                                { label: 'Ready', dataKey: 'ready', width: 80, flexGrow: 0, cellRenderer: (r) => <span className="text-gray-400">{r}</span> }
+                            ]}
                             data={replicaSets}
                             onRowClick={(rs: any) => handleResourceClick(rs, 'replicaset')}
-                            renderRow={(rs: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{rs.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{rs.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{rs.desired}</td>
-                                    <td className="px-6 py-3 text-gray-400">{rs.current}</td>
-                                    <td className="px-6 py-3 text-gray-400">{rs.ready}</td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -842,19 +822,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="services"
                             description="Network services for your application components."
-                            headers={['Name', 'Namespace', 'Type', 'Cluster IP', 'Ports', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Type', dataKey: 'type', width: 120, flexGrow: 0, cellRenderer: (t) => <span className="text-gray-400">{t}</span> },
+                                { label: 'Cluster IP', dataKey: 'clusterIP', width: 120, flexGrow: 0, cellRenderer: (ip) => <span className="text-gray-400 font-mono text-xs">{ip}</span> },
+                                { label: 'Ports', dataKey: 'ports', flexGrow: 1, cellRenderer: (p) => <span className="text-gray-400 font-mono text-xs">{p}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400">{new Date(age).toLocaleDateString()}</span> }
+                            ]}
                             data={services}
                             onRowClick={(svc: any) => handleResourceClick(svc, 'service')}
-                            renderRow={(svc: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{svc.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{svc.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{svc.type}</td>
-                                    <td className="px-6 py-3 text-gray-400 font-mono text-xs">{svc.clusterIP}</td>
-                                    <td className="px-6 py-3 text-gray-400 font-mono text-xs">{svc.ports}</td>
-                                    <td className="px-6 py-3 text-gray-400">{new Date(svc.age).toLocaleDateString()}</td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -864,15 +841,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="clusterrolebindings"
                             description="Cluster-wide access control and permission bindings."
-                            headers={['Name', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400">{new Date(age).toLocaleDateString()}</span> }
+                            ]}
                             data={clusterRoleBindings}
                             onRowClick={(crb: any) => handleResourceClick(crb, 'clusterrolebinding')}
-                            renderRow={(crb: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{crb.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{new Date(crb.age).toLocaleDateString()}</td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -882,16 +856,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="rolebindings"
                             description="Namespace-scoped permissions and access control."
-                            headers={['Name', 'Namespace', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400">{new Date(age).toLocaleDateString()}</span> }
+                            ]}
                             data={roleBindings}
                             onRowClick={(rb: any) => handleResourceClick(rb, 'rolebinding')}
-                            renderRow={(rb: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{rb.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{rb.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{new Date(rb.age).toLocaleDateString()}</td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -902,17 +873,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="serviceaccounts"
                             description="Identities for processes that run in a Pod."
-                            headers={['Name', 'Namespace', 'Secrets', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Secrets', dataKey: 'secrets', flexGrow: 1, cellRenderer: (s) => <span className="text-gray-400">{s}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400">{new Date(age).toLocaleDateString()}</span> }
+                            ]}
                             data={serviceAccounts}
                             onRowClick={(sa: any) => handleResourceClick(sa, 'serviceaccount')}
-                            renderRow={(sa: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{sa.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{sa.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{sa.secrets}</td>
-                                    <td className="px-6 py-3 text-gray-400">{new Date(sa.age).toLocaleDateString()}</td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -922,16 +890,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="roles"
                             description="Sets of permissions within a specific namespace."
-                            headers={['Name', 'Namespace', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400">{new Date(age).toLocaleDateString()}</span> }
+                            ]}
                             data={roles}
                             onRowClick={(r: any) => handleResourceClick(r, 'role')}
-                            renderRow={(r: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{r.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{r.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{new Date(r.age).toLocaleDateString()}</td>
-                                </>
-                            )}
                         />
                     )}
                     {/* DAEMONSETS TABLE */}
@@ -940,20 +905,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="daemonsets"
                             description="Ensures that all (or some) Nodes run a copy of a Pod."
-                            headers={['Name', 'Namespace', 'Desired', 'Current', 'Ready', 'Available', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Desired', dataKey: 'desired', width: 80, flexGrow: 0, cellRenderer: (d) => <span className="text-gray-400">{d}</span> },
+                                { label: 'Current', dataKey: 'current', width: 80, flexGrow: 0, cellRenderer: (c) => <span className="text-gray-400">{c}</span> },
+                                { label: 'Ready', dataKey: 'ready', width: 80, flexGrow: 0, cellRenderer: (r) => <span className="text-gray-400">{r}</span> },
+                                { label: 'Available', dataKey: 'available', width: 80, flexGrow: 0, cellRenderer: (a) => <span className="text-gray-400">{a}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={daemonSets}
                             onRowClick={(ds: any) => handleResourceClick(ds, 'daemonset')}
-                            renderRow={(ds: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{ds.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{ds.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{ds.desired}</td>
-                                    <td className="px-6 py-3 text-gray-400">{ds.current}</td>
-                                    <td className="px-6 py-3 text-gray-400">{ds.ready}</td>
-                                    <td className="px-6 py-3 text-gray-400">{ds.available}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={ds.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -963,19 +925,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="statefulsets"
                             description="Manages the deployment and scaling of a set of Pods, and provides guarantees about the ordering and uniqueness of these Pods."
-                            headers={['Name', 'Namespace', 'Replicas', 'Ready', 'Current', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Replicas', dataKey: 'replicas', width: 80, flexGrow: 0, cellRenderer: (r) => <span className="text-gray-400">{r}</span> },
+                                { label: 'Ready', dataKey: 'ready', width: 80, flexGrow: 0, cellRenderer: (r) => <span className="text-gray-400">{r}</span> },
+                                { label: 'Current', dataKey: 'current', width: 80, flexGrow: 0, cellRenderer: (c) => <span className="text-gray-400">{c}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={statefulSets}
                             onRowClick={(sts: any) => handleResourceClick(sts, 'statefulset')}
-                            renderRow={(sts: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{sts.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{sts.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{sts.replicas}</td>
-                                    <td className="px-6 py-3 text-gray-400">{sts.ready}</td>
-                                    <td className="px-6 py-3 text-gray-400">{sts.current}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={sts.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -985,20 +944,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="jobs"
                             description="A Job creates one or more Pods and will continue to retry execution of the Pods until a specified number of them successfully terminate."
-                            headers={['Name', 'Namespace', 'Completions', 'Succeeded', 'Active', 'Failed', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Completions', dataKey: 'completions', width: 100, flexGrow: 0, cellRenderer: (c) => <span className="text-gray-400">{c}</span> },
+                                { label: 'Succeeded', dataKey: 'succeeded', width: 100, flexGrow: 0, cellRenderer: (s) => <span className="text-green-400">{s}</span> },
+                                { label: 'Active', dataKey: 'active', width: 100, flexGrow: 0, cellRenderer: (a) => <span className="text-blue-400">{a}</span> },
+                                { label: 'Failed', dataKey: 'failed', width: 100, flexGrow: 0, cellRenderer: (f) => <span className="text-red-400">{f}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={jobs}
                             onRowClick={(job: any) => handleResourceClick(job, 'job')}
-                            renderRow={(job: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{job.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{job.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{job.completions}</td>
-                                    <td className="px-6 py-3 text-gray-400 text-green-400">{job.succeeded}</td>
-                                    <td className="px-6 py-3 text-gray-400 text-blue-400">{job.active}</td>
-                                    <td className="px-6 py-3 text-gray-400 text-red-400">{job.failed}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={job.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1008,20 +964,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="cronjobs"
                             description="Runs Jobs on a time-based schedule."
-                            headers={['Name', 'Namespace', 'Schedule', 'Suspend', 'Active', 'Last Schedule', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Schedule', dataKey: 'schedule', flexGrow: 1, cellRenderer: (s) => <span className="text-gray-400 font-mono text-xs">{s}</span> },
+                                { label: 'Suspend', dataKey: 'suspend', width: 80, flexGrow: 0, cellRenderer: (s) => <span className="text-gray-400">{s ? 'True' : 'False'}</span> },
+                                { label: 'Active', dataKey: 'active', width: 80, flexGrow: 0, cellRenderer: (a) => <span className="text-gray-400">{a}</span> },
+                                { label: 'Last Schedule', dataKey: 'lastScheduleTime', width: 120, flexGrow: 0, cellRenderer: (t) => <span className="text-gray-400">{t ? <TimeAgo timestamp={t} /> : '-'}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={cronJobs}
                             onRowClick={(cj: any) => handleResourceClick(cj, 'cronjob')}
-                            renderRow={(cj: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{cj.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{cj.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400 font-mono text-xs">{cj.schedule}</td>
-                                    <td className="px-6 py-3 text-gray-400">{cj.suspend ? 'True' : 'False'}</td>
-                                    <td className="px-6 py-3 text-gray-400">{cj.active}</td>
-                                    <td className="px-6 py-3 text-gray-400">{cj.lastScheduleTime ? <TimeAgo timestamp={cj.lastScheduleTime} /> : '-'}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={cj.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1031,19 +984,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="endpointslices"
                             description="Scalable and extensible way to group network endpoints together."
-                            headers={['Name', 'Namespace', 'Address Type', 'Ports', 'Endpoints', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Address Type', dataKey: 'addressType', width: 120, flexGrow: 0, cellRenderer: (at) => <span className="text-gray-400">{at}</span> },
+                                { label: 'Ports', dataKey: 'ports', flexGrow: 1, cellRenderer: (p) => <span className="text-gray-400">{p}</span> },
+                                { label: 'Endpoints', dataKey: 'endpoints', flexGrow: 1, cellRenderer: (e) => <span className="text-gray-400">{e}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={endpointSlices}
                             onRowClick={(es: any) => handleResourceClick(es, 'endpointslice')}
-                            renderRow={(es: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{es.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{es.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{es.addressType}</td>
-                                    <td className="px-6 py-3 text-gray-400">{es.ports}</td>
-                                    <td className="px-6 py-3 text-gray-400">{es.endpoints}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={es.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1073,19 +1023,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="ingresses"
                             description="Manages external access to the services in a cluster, typically HTTP."
-                            headers={['Name', 'Namespace', 'Class', 'Hosts', 'Address', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Class', dataKey: 'class', width: 100, flexGrow: 0, cellRenderer: (c) => <span className="text-gray-400">{c}</span> },
+                                { label: 'Hosts', dataKey: 'hosts', flexGrow: 1, cellRenderer: (h) => <span className="text-gray-400 font-mono text-xs">{h}</span> },
+                                { label: 'Address', dataKey: 'address', width: 120, flexGrow: 0, cellRenderer: (a) => <span className="text-gray-400">{a}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={ingresses}
                             onRowClick={(ing: any) => handleResourceClick(ing, 'ingress')}
-                            renderRow={(ing: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{ing.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{ing.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{ing.class}</td>
-                                    <td className="px-6 py-3 text-gray-400 font-mono text-xs">{ing.hosts}</td>
-                                    <td className="px-6 py-3 text-gray-400">{ing.address}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={ing.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1095,18 +1042,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="ingressclasses"
                             description="Defines a type of Ingress controller."
-                            headers={['Name', 'Controller', 'API Group', 'Kind', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Controller', dataKey: 'controller', flexGrow: 1, cellRenderer: (c) => <span className="text-gray-400">{c}</span> },
+                                { label: 'API Group', dataKey: 'apiGroup', width: 120, flexGrow: 0, cellRenderer: (g) => <span className="text-gray-400">{g || '-'}</span> },
+                                { label: 'Kind', dataKey: 'kind', width: 100, flexGrow: 0, cellRenderer: (k) => <span className="text-gray-400">{k || '-'}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={ingressClasses}
                             onRowClick={(ic: any) => handleResourceClick(ic, 'ingressclass')}
-                            renderRow={(ic: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{ic.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{ic.controller}</td>
-                                    <td className="px-6 py-3 text-gray-400">{ic.apiGroup || '-'}</td>
-                                    <td className="px-6 py-3 text-gray-400">{ic.kind || '-'}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={ic.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1116,18 +1060,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="networkpolicies"
                             description="Controls how groups of Pods are allowed to communicate with each other and other network endpoints."
-                            headers={['Name', 'Namespace', 'Pod Selector', 'Policy Types', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Pod Selector', dataKey: 'podSelector', flexGrow: 1, cellRenderer: (ps) => <span className="text-gray-400">{ps}</span> },
+                                { label: 'Policy Types', dataKey: 'policyTypes', flexGrow: 1, cellRenderer: (pt) => <span className="text-gray-400">{pt}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={networkPolicies}
                             onRowClick={(np: any) => handleResourceClick(np, 'networkpolicy')}
-                            renderRow={(np: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{np.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{np.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{np.podSelector}</td>
-                                    <td className="px-6 py-3 text-gray-400">{np.policyTypes}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={np.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1137,21 +1078,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="pvcs"
                             description="A request for storage by a user."
-                            headers={['Name', 'Namespace', 'Status', 'Volume', 'Capacity', 'Access Modes', 'Storage Class', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Status', dataKey: 'status', width: 100, flexGrow: 0, cellRenderer: (s) => <span className="text-gray-400">{s}</span> },
+                                { label: 'Volume', dataKey: 'volume', flexGrow: 1, cellRenderer: (v) => <span className="text-gray-400">{v}</span> },
+                                { label: 'Capacity', dataKey: 'capacity', width: 100, flexGrow: 0, cellRenderer: (c) => <span className="text-gray-400">{c}</span> },
+                                { label: 'Access Modes', dataKey: 'accessModes', flexGrow: 1, cellRenderer: (am) => <span className="text-gray-400">{am}</span> },
+                                { label: 'Storage Class', dataKey: 'storageClass', flexGrow: 1, cellRenderer: (sc) => <span className="text-gray-400">{sc}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={pvcs}
                             onRowClick={(pvc: any) => handleResourceClick(pvc, 'persistentvolumeclaim')}
-                            renderRow={(pvc: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{pvc.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pvc.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pvc.status}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pvc.volume}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pvc.capacity}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pvc.accessModes}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pvc.storageClass}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={pvc.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1160,21 +1098,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="persistentvolumes"
                             description="A piece of storage in the cluster that has been provisioned by an administrator or dynamically provisioned using Storage Classes."
-                            headers={['Name', 'Capacity', 'Access Modes', 'Reclaim', 'Status', 'Claim', 'Storage Class', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Capacity', dataKey: 'capacity', width: 100, flexGrow: 0, cellRenderer: (c) => <span className="text-gray-400">{c}</span> },
+                                { label: 'Access Modes', dataKey: 'accessModes', flexGrow: 1, cellRenderer: (am) => <span className="text-gray-400">{am}</span> },
+                                { label: 'Reclaim', dataKey: 'reclaimPolicy', width: 100, flexGrow: 0, cellRenderer: (rp) => <span className="text-gray-400">{rp}</span> },
+                                { label: 'Status', dataKey: 'status', width: 100, flexGrow: 0, cellRenderer: (s) => <span className="text-gray-400">{s}</span> },
+                                { label: 'Claim', dataKey: 'claim', flexGrow: 1, cellRenderer: (c) => <span className="text-gray-400">{c}</span> },
+                                { label: 'Storage Class', dataKey: 'storageClass', flexGrow: 1, cellRenderer: (sc) => <span className="text-gray-400">{sc}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={pvs}
                             onRowClick={(pv: any) => handleResourceClick(pv, 'persistentvolume')}
-                            renderRow={(pv: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{pv.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pv.capacity}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pv.accessModes}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pv.reclaimPolicy}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pv.status}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pv.claim}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pv.storageClass}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={pv.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1183,18 +1118,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="storageclasses"
                             description="Describes the classes of storage offered by the cluster."
-                            headers={['Name', 'Provisioner', 'Reclaim Policy', 'Volume Binding Mode', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Provisioner', dataKey: 'provisioner', flexGrow: 1, cellRenderer: (p) => <span className="text-gray-400">{p}</span> },
+                                { label: 'Reclaim Policy', dataKey: 'reclaimPolicy', width: 120, flexGrow: 0, cellRenderer: (rp) => <span className="text-gray-400">{rp}</span> },
+                                { label: 'Volume Binding Mode', dataKey: 'volumeBindingMode', width: 150, flexGrow: 0, cellRenderer: (vbm) => <span className="text-gray-400">{vbm}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={storageClasses}
                             onRowClick={(sc: any) => handleResourceClick(sc, 'storageclass')}
-                            renderRow={(sc: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{sc.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{sc.provisioner}</td>
-                                    <td className="px-6 py-3 text-gray-400">{sc.reclaimPolicy}</td>
-                                    <td className="px-6 py-3 text-gray-400">{sc.volumeBindingMode}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={sc.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1203,17 +1135,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="configmaps"
                             description="ConfigMaps allow you to decouple configuration artifacts from image content."
-                            headers={['Name', 'Namespace', 'Data Keys', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Data Keys', dataKey: 'data', flexGrow: 1, cellRenderer: (d) => <span className="text-gray-400">{d}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={configMaps}
                             onRowClick={(cm: any) => handleResourceClick(cm, 'configmap')}
-                            renderRow={(cm: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{cm.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{cm.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{cm.data}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={cm.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1221,18 +1150,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="secrets"
                             description="Secrets let you store and manage sensitive information."
-                            headers={['Name', 'Namespace', 'Type', 'Data Keys', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Type', dataKey: 'type', width: 120, flexGrow: 0, cellRenderer: (t) => <span className="text-gray-400 text-xs">{t}</span> },
+                                { label: 'Data Keys', dataKey: 'data', flexGrow: 1, cellRenderer: (d) => <span className="text-gray-400">{d}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={secrets}
                             onRowClick={(secret: any) => handleResourceClick(secret, 'secret')}
-                            renderRow={(secret: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{secret.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{secret.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400 text-xs">{secret.type}</td>
-                                    <td className="px-6 py-3 text-gray-400">{secret.data}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={secret.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1240,20 +1166,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="horizontalpodautoscalers"
                             description="Automatically scales the number of pods based on observed metrics."
-                            headers={['Name', 'Namespace', 'Reference', 'Min Pods', 'Max Pods', 'Replicas', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Reference', dataKey: 'reference', flexGrow: 1, cellRenderer: (r) => <span className="text-blue-400 text-sm">{r}</span> },
+                                { label: 'Min Pods', dataKey: 'minPods', width: 80, flexGrow: 0, cellRenderer: (min) => <span className="text-gray-400">{min}</span> },
+                                { label: 'Max Pods', dataKey: 'maxPods', width: 80, flexGrow: 0, cellRenderer: (max) => <span className="text-gray-400">{max}</span> },
+                                { label: 'Replicas', dataKey: 'replicas', width: 80, flexGrow: 0, cellRenderer: (r) => <span className="text-gray-400">{r}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={horizontalPodAutoscalers}
                             onRowClick={(hpa: any) => handleResourceClick(hpa, 'horizontalpodautoscaler')}
-                            renderRow={(hpa: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{hpa.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{hpa.namespace}</td>
-                                    <td className="px-6 py-3 text-blue-400 text-sm">{hpa.reference}</td>
-                                    <td className="px-6 py-3 text-gray-400">{hpa.minPods}</td>
-                                    <td className="px-6 py-3 text-gray-400">{hpa.maxPods}</td>
-                                    <td className="px-6 py-3 text-gray-400">{hpa.replicas}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={hpa.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1261,19 +1184,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="poddisruptionbudgets"
                             description="Limits the number of pods that can be down simultaneously from voluntary disruptions."
-                            headers={['Name', 'Namespace', 'Min Available', 'Max Unavailable', 'Allowed Disruptions', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
+                                { label: 'Min Available', dataKey: 'minAvailable', width: 100, flexGrow: 0, cellRenderer: (ma) => <span className="text-gray-400">{ma || '-'}</span> },
+                                { label: 'Max Unavailable', dataKey: 'maxUnavailable', width: 100, flexGrow: 0, cellRenderer: (mu) => <span className="text-gray-400">{mu || '-'}</span> },
+                                { label: 'Allowed Disruptions', dataKey: 'allowed', width: 120, flexGrow: 0, cellRenderer: (ad) => <span className="text-gray-400">{ad}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={podDisruptionBudgets}
                             onRowClick={(pdb: any) => handleResourceClick(pdb, 'poddisruptionbudget')}
-                            renderRow={(pdb: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{pdb.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pdb.namespace}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pdb.minAvailable || '-'}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pdb.maxUnavailable || '-'}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pdb.allowed}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={pdb.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1281,16 +1201,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="mutatingwebhookconfigurations"
                             description="Defines admission webhooks that can mutate objects before they are stored."
-                            headers={['Name', 'Webhooks', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Webhooks', dataKey: 'webhooks', flexGrow: 1, cellRenderer: (w) => <span className="text-gray-400">{w}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={mutatingWebhookConfigurations}
                             onRowClick={(mwc: any) => handleResourceClick(mwc, 'mutatingwebhookconfiguration')}
-                            renderRow={(mwc: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{mwc.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{mwc.webhooks}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={mwc.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1298,16 +1215,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="validatingwebhookconfigurations"
                             description="Defines admission webhooks that can validate objects before they are stored."
-                            headers={['Name', 'Webhooks', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Webhooks', dataKey: 'webhooks', flexGrow: 1, cellRenderer: (w) => <span className="text-gray-400">{w}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={validatingWebhookConfigurations}
                             onRowClick={(vwc: any) => handleResourceClick(vwc, 'validatingwebhookconfiguration')}
-                            renderRow={(vwc: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{vwc.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{vwc.webhooks}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={vwc.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1315,18 +1229,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="priorityclasses"
                             description="Defines the priority of pods relative to other pods."
-                            headers={['Name', 'Value', 'Global Default', 'Description', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Value', dataKey: 'value', width: 100, flexGrow: 0, cellRenderer: (v) => <span className="text-gray-400">{v}</span> },
+                                { label: 'Global Default', dataKey: 'globalDefault', width: 100, flexGrow: 0, cellRenderer: (gd) => <span className="text-gray-400">{gd ? 'Yes' : 'No'}</span> },
+                                { label: 'Description', dataKey: 'description', flexGrow: 1, cellRenderer: (d) => <span className="text-gray-400 text-sm max-w-xs truncate">{d || '-'}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={priorityClasses}
                             onRowClick={(pc: any) => handleResourceClick(pc, 'priorityclass')}
-                            renderRow={(pc: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{pc.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pc.value}</td>
-                                    <td className="px-6 py-3 text-gray-400">{pc.globalDefault ? 'Yes' : 'No'}</td>
-                                    <td className="px-6 py-3 text-gray-400 text-sm max-w-xs truncate">{pc.description || '-'}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={pc.age} /></td>
-                                </>
-                            )}
                         />
                     )}
 
@@ -1334,16 +1245,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         <GenericResourceView
                             viewKey="runtimeclasses"
                             description="Defines different classes of runtimes that may be used to run containers."
-                            headers={['Name', 'Handler', 'Age']}
+                            columns={[
+                                { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                                { label: 'Handler', dataKey: 'handler', flexGrow: 1, cellRenderer: (h) => <span className="text-gray-400">{h}</span> },
+                                { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                            ]}
                             data={runtimeClasses}
                             onRowClick={(rc: any) => handleResourceClick(rc, 'runtimeclass')}
-                            renderRow={(rc: any) => (
-                                <>
-                                    <td className="px-6 py-3 font-medium text-gray-200">{rc.name}</td>
-                                    <td className="px-6 py-3 text-gray-400">{rc.handler}</td>
-                                    <td className="px-6 py-3 text-gray-400"><TimeAgo timestamp={rc.age} /></td>
-                                </>
-                            )}
                         />
                     )}
                 </AnimatePresence>
