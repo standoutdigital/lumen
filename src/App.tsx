@@ -233,9 +233,20 @@ function App() {
                 onSaveYaml = async (newContent: string) => {
                     try {
                         await window.k8s.updateDeploymentYaml(selectedCluster, namespace, name, newContent);
+                        // Fetch latest YAML to update editor and prevent version conflicts
+                        const latestYaml = await window.k8s.getDeploymentYaml(selectedCluster, namespace, name);
+
+                        setPanelTabs(prev => prev.map(t => {
+                            if (t.id === `yaml-${type}-${namespace || 'global'}-${name}`) {
+                                return { ...t, yamlContent: latestYaml };
+                            }
+                            return t;
+                        }));
+
                         showToast('Deployment YAML updated successfully', 'success');
                     } catch (err: any) {
                         showToast(`Update failed: ${err.message || err}`, 'error');
+                        throw err;
                     }
                 };
             } else if (type === 'poddisruptionbudget') {
@@ -243,9 +254,20 @@ function App() {
                 onSaveYaml = async (newContent: string) => {
                     try {
                         await window.k8s.updatePdbYaml(selectedCluster, namespace, name, newContent);
+                        // Fetch latest YAML
+                        const latestYaml = await window.k8s.getPdbYaml(selectedCluster, namespace, name);
+
+                        setPanelTabs(prev => prev.map(t => {
+                            if (t.id === `yaml-${type}-${namespace || 'global'}-${name}`) {
+                                return { ...t, yamlContent: latestYaml };
+                            }
+                            return t;
+                        }));
+
                         showToast('PDB YAML updated successfully', 'success');
                     } catch (err: any) {
                         showToast(`Update failed: ${err.message || err}`, 'error');
+                        throw err;
                     }
                 };
             } else {
