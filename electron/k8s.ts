@@ -214,6 +214,29 @@ export class K8sService {
         return items.map((ns: any) => ns.metadata?.name).filter(Boolean) as string[];
     }
 
+    async getNamespacesDetails(contextName: string) {
+        console.log(`[k8s] getNamespacesDetails for ${contextName}`);
+        this.kc.setCurrentContext(contextName);
+        const k8sApi = this.kc.makeApiClient(CoreV1Api);
+        try {
+            const res = await k8sApi.listNamespace();
+            const items = (res as any).body ? (res as any).body.items : (res as any).items;
+            return items.map((ns: any) => ({
+                name: ns.metadata?.name,
+                status: ns.status?.phase,
+                labels: ns.metadata?.labels,
+                annotations: ns.metadata?.annotations,
+                age: ns.metadata?.creationTimestamp,
+                metadata: ns.metadata,
+                spec: ns.spec,
+                statusObj: ns.status
+            }));
+        } catch (error) {
+            console.error('Error fetching namespace details:', error);
+            return [];
+        }
+    }
+
     async getDeployments(contextName: string, namespaces: string[] = []) {
         this.kc.setCurrentContext(contextName);
         const k8sApi = this.kc.makeApiClient(AppsV1Api);
@@ -509,26 +532,73 @@ export class K8sService {
             if (!deployment.spec.template.metadata) deployment.spec.template.metadata = {};
             if (!deployment.spec.template.metadata.annotations) deployment.spec.template.metadata.annotations = {};
 
-            deployment.spec.template.metadata.annotations["kubectl.kubernetes.io/restartedAt"] = new Date().toISOString();
+            deployment.spec.template.metadata.annotations['kubectl.kubernetes.io/restartedAt'] = new Date().toISOString();
 
-            // 3. Replace deployment (PUT)
-            console.log(`[restartDeployment] Sending replacement for ${deploymentName}`);
+            // 3. Patch the deployment
             await k8sApi.replaceNamespacedDeployment({
                 name: deploymentName,
                 namespace,
                 body: deployment
             });
 
-            console.log(`[restartDeployment] Successfully restarted ${deploymentName}`);
             return { success: true };
-        } catch (e: any) {
-            console.error(`Failed to restart deployment ${deploymentName}:`, e);
-            throw new Error(e.body?.message || e.message);
+        } catch (error) {
+            console.error('Error restarting deployment:', error);
+            throw error;
         }
     }
 
+    async restartDaemonSet(contextName: string, namespace: string, name: string) {
+        console.log(`[restartDaemonSet] Called with context=${contextName}, ns=${namespace}, name=${name}`);
+        this.kc.setCurrentContext(contextName);
+        const k8sApi = this.kc.makeApiClient(AppsV1Api);
+
+        try {
+            const res = await k8sApi.readNamespacedDaemonSet({ name, namespace });
+            const daemonSet = (res as any).body ? (res as any).body : res;
+
+            if (!daemonSet.spec) daemonSet.spec = {};
+            if (!daemonSet.spec.template) daemonSet.spec.template = {};
+            if (!daemonSet.spec.template.metadata) daemonSet.spec.template.metadata = {};
+            if (!daemonSet.spec.template.metadata.annotations) daemonSet.spec.template.metadata.annotations = {};
+
+            daemonSet.spec.template.metadata.annotations['kubectl.kubernetes.io/restartedAt'] = new Date().toISOString();
+
+            await k8sApi.replaceNamespacedDaemonSet({ name, namespace, body: daemonSet });
+            return { success: true };
+        } catch (error) {
+            console.error('Error restarting daemonset:', error);
+            throw error;
+        }
+    }
+
+    async restartStatefulSet(contextName: string, namespace: string, name: string) {
+        console.log(`[restartStatefulSet] Called with context=${contextName}, ns=${namespace}, name=${name}`);
+        this.kc.setCurrentContext(contextName);
+        const k8sApi = this.kc.makeApiClient(AppsV1Api);
+
+        try {
+            const res = await k8sApi.readNamespacedStatefulSet({ name, namespace });
+            const statefulSet = (res as any).body ? (res as any).body : res;
+
+            if (!statefulSet.spec) statefulSet.spec = {};
+            if (!statefulSet.spec.template) statefulSet.spec.template = {};
+            if (!statefulSet.spec.template.metadata) statefulSet.spec.template.metadata = {};
+            if (!statefulSet.spec.template.metadata.annotations) statefulSet.spec.template.metadata.annotations = {};
+
+            statefulSet.spec.template.metadata.annotations['kubectl.kubernetes.io/restartedAt'] = new Date().toISOString();
+
+            await k8sApi.replaceNamespacedStatefulSet({ name, namespace, body: statefulSet });
+            return { success: true };
+        } catch (error) {
+            console.error('Error restarting statefulset:', error);
+            throw error;
+        }
+    }
+
+
     async getReplicaSet(contextName: string, namespace: string, name: string) {
-        console.log(`[k8s] getReplicaSet called with: context=${contextName}, namespace=${namespace}, name=${name}`);
+        console.log(`[k8s] getReplicaSet called with: context = ${contextName}, namespace = ${namespace}, name = ${name} `);
         this.kc.setCurrentContext(contextName);
         const k8sApi = this.kc.makeApiClient(AppsV1Api);
         try {

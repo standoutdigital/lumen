@@ -30,10 +30,33 @@ Structure your response as follows:
 Keep it concise and educational. Focus on the *intent* of the CRD.
 `;
 
+export const NODEPOOL_PROMPT = `
+You are a Karpenter expert.
+Your task is to explain the following NodePool configuration to a DevOps engineer.
+
+Please provide the explanation in a CLEAR, HUMAN - READABLE format using Markdown.
+
+    Structure your response as follows:
+        1. ** Summary ** 📝: What is the role of this NodePool ? (e.g., General purpose, GPU workloads, Spot instances).
+2. ** Instance Constraints ** 💻: Analyze the requirements(CPU, constraints, architecture, zones).What kind of EC2 instances will this spawn ?
+    3. ** Disruption & Consolidation ** ♻️: Explain how and when nodes will be deprovisioned or consolidated.
+4. ** Resilience ** 🛡️: Check for spot / on - demand settings and multi - zone configuration.
+5. ** Cost Efficiency ** 💰: Comment on the consolidation policy and limits from a cost perspective.
+
+Keep it practical and focused on AWS / Karpenter specifics.
+`;
+
 export const getPromptForResource = (resource: any) => {
     // Check if it's a CRD
     if (resource.kind === 'CustomResourceDefinition' || (resource.spec && resource.spec.names && resource.spec.group && resource.spec.versions)) {
         return CRD_PROMPT;
     }
+
+
+    // Check for NodePool
+    if (resource.kind === 'NodePool' && resource.apiVersion?.includes('karpenter.sh')) {
+        return NODEPOOL_PROMPT;
+    }
+
     return DEFAULT_PROMPT;
 };

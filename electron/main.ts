@@ -74,6 +74,12 @@ function registerIpcHandlers() {
     console.log('IPC: k8s:getNamespaces called with', contextName);
     return k8sService.getNamespaces(contextName);
   })
+
+  ipcMain.handle('k8s:getNamespacesDetails', (_, contextName) => {
+    console.log('IPC: k8s:getNamespacesDetails called with', contextName);
+    return k8sService.getNamespacesDetails(contextName);
+  })
+
   ipcMain.handle('k8s:getDeployments', (_, contextName, namespaces) => {
     console.log('IPC: k8s:getDeployments called with', contextName, namespaces);
     return k8sService.getDeployments(contextName, namespaces);
@@ -142,6 +148,14 @@ function registerIpcHandlers() {
 
   ipcMain.handle('k8s:restartDeployment', (_, contextName, namespace, name) => {
     return k8sService.restartDeployment(contextName, namespace, name);
+  })
+
+  ipcMain.handle('k8s:restartDaemonSet', (_, contextName, namespace, name) => {
+    return k8sService.restartDaemonSet(contextName, namespace, name);
+  })
+
+  ipcMain.handle('k8s:restartStatefulSet', (_, contextName, namespace, name) => {
+    return k8sService.restartStatefulSet(contextName, namespace, name);
   })
 
   ipcMain.handle('k8s:getRoleBinding', (_, contextName, namespace, name) => {

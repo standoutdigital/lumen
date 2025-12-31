@@ -330,6 +330,14 @@ export const SecondarySidebar: React.FC<SecondarySidebarProps> = ({
                                     onClick={() => onSelectView('nodes')}
                                 />
                             )}
+                            {(!searchQuery || filterMatches('Namespaces')) && (
+                                <NavItem
+                                    icon={<Layers size={18} />}
+                                    label="Namespaces"
+                                    active={activeView === 'namespaces'}
+                                    onClick={() => onSelectView('namespaces')}
+                                />
+                            )}
                         </div>
 
                         {/* Standard Groups */}

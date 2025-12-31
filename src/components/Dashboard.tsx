@@ -77,6 +77,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
     const [customObjects, setCustomObjects] = useState<any[]>([]);
     const [currentCrdKind, setCurrentCrdKind] = useState<string>('');
     const [crdDefinitions, setCrdDefinitions] = useState<any[]>([]);
+    const [namespacesList, setNamespacesList] = useState<any[]>([]);
 
     // Handle CRD view parsing
     const isCrdView = activeView.startsWith('crd/');
@@ -224,7 +225,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
         console.log('[Dashboard] State wiped for new cluster:', clusterName);
 
         window.k8s.getNamespaces(clusterName).then(setNamespaces).catch(console.error);
-    }, [clusterName]);
+
+        if (activeView === 'namespaces') {
+            setLoading(true);
+            window.k8s.getNamespacesDetails(clusterName)
+                .then(res => {
+                    setNamespacesList(res);
+                    setLoading(false);
+                })
+                .catch(err => {
+                    console.error("Failed to load namespaces", err);
+                    setLoading(false);
+                });
+        }
+    }, [clusterName, activeView]);
 
     // Watcher Effect
     useEffect(() => {
@@ -460,7 +474,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
         loadResources();
     }, [clusterName, selectedNamespaces, activeView]);
 
-    const handleResourceClick = async (resource: any, type: 'deployment' | 'pod' | 'replicaset' | 'service' | 'clusterrolebinding' | 'rolebinding' | 'serviceaccount' | 'role' | 'node' | 'crd-definition' | 'custom-resource' | 'daemonset' | 'statefulset' | 'job' | 'cronjob' | 'endpointslice' | 'endpoint' | 'ingress' | 'ingressclass' | 'networkpolicy' | 'persistentvolumeclaim' | 'persistentvolume' | 'storageclass' | 'configmap' | 'secret' | 'horizontalpodautoscaler' | 'poddisruptionbudget' | 'mutatingwebhookconfiguration' | 'validatingwebhookconfiguration' | 'priorityclass' | 'runtimeclass' | 'other') => {
+    const handleResourceClick = async (resource: any, type: 'deployment' | 'pod' | 'replicaset' | 'service' | 'clusterrolebinding' | 'rolebinding' | 'serviceaccount' | 'role' | 'node' | 'crd-definition' | 'custom-resource' | 'daemonset' | 'statefulset' | 'job' | 'cronjob' | 'endpointslice' | 'endpoint' | 'ingress' | 'ingressclass' | 'networkpolicy' | 'persistentvolumeclaim' | 'persistentvolume' | 'storageclass' | 'configmap' | 'secret' | 'horizontalpodautoscaler' | 'poddisruptionbudget' | 'mutatingwebhookconfiguration' | 'validatingwebhookconfiguration' | 'priorityclass' | 'runtimeclass' | 'namespace' | 'other') => {
         setSelectedResource({ ...resource, type });
         setIsDrawerOpen(true);
         setDetailedResource(null); // Clear previous details while loading
@@ -468,11 +482,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
 
         // Only fetch details for types we have specific detail fetching logic for
         // Config resources will use generic details component
-        if (['deployment', 'service', 'pod', 'replicaset', 'clusterrolebinding', 'rolebinding', 'serviceaccount', 'role', 'node', 'crd-definition', 'custom-resource', 'daemonset', 'statefulset', 'job', 'cronjob', 'endpointslice', 'endpoint', 'ingress', 'ingressclass', 'networkpolicy', 'persistentvolumeclaim', 'persistentvolume', 'storageclass', 'configmap', 'secret', 'horizontalpodautoscaler', 'poddisruptionbudget', 'mutatingwebhookconfiguration', 'validatingwebhookconfiguration', 'priorityclass', 'runtimeclass'].includes(type)) {
+        if (['deployment', 'service', 'pod', 'replicaset', 'clusterrolebinding', 'rolebinding', 'serviceaccount', 'role', 'node', 'crd-definition', 'custom-resource', 'daemonset', 'statefulset', 'job', 'cronjob', 'endpointslice', 'endpoint', 'ingress', 'ingressclass', 'networkpolicy', 'persistentvolumeclaim', 'persistentvolume', 'storageclass', 'configmap', 'secret', 'horizontalpodautoscaler', 'poddisruptionbudget', 'mutatingwebhookconfiguration', 'validatingwebhookconfiguration', 'priorityclass', 'runtimeclass', 'namespace'].includes(type)) {
             try {
                 if (type === 'deployment') {
                     const details = await window.k8s.getDeployment(clusterName, resource.namespace, resource.name);
                     setDetailedResource(details);
+                } else if (type === 'namespace') {
+                    setDetailedResource(resource);
                 } else if (type === 'replicaset') {
                     const details = await window.k8s.getReplicaSet(clusterName, resource.namespace, resource.name);
                     setDetailedResource(details);
@@ -782,6 +798,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                     <NodesView
                         nodes={nodes}
                         onRowClick={(node: any) => handleResourceClick(node, 'node')}
+                        searchQuery={searchQuery}
+                    />
+                )}
+
+                {(activeView === 'backgrounds') && (
+                    null
+                )}
+
+                {(activeView === 'namespaces') && (
+                    <GenericResourceView
+                        viewKey="namespaces"
+                        description="Virtual clusters backed by the same physical cluster."
+                        columns={[
+                            { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
+                            { label: 'Status', dataKey: 'status', width: 100, flexGrow: 0, cellRenderer: (s) => <span className={s === 'Active' ? 'text-green-400' : 'text-gray-400'}>{s}</span> },
+                            { label: 'Labels', dataKey: 'labels', flexGrow: 1, cellRenderer: (labels) => labels ? Object.entries(labels).map(([k, v]) => `${k}=${v}`).join(', ') : '-' },
+                            { label: 'Annotations', dataKey: 'annotations', flexGrow: 1, cellRenderer: (anns) => anns ? Object.keys(anns).length + ' annotations' : '-' },
+                            { label: 'Age', dataKey: 'age', sortable: true, width: 120, flexGrow: 0, cellRenderer: (age) => <span className="text-gray-400"><TimeAgo timestamp={age} /></span> }
+                        ]}
+                        data={namespacesList}
+                        onRowClick={(ns: any) => handleResourceClick({ ...ns, type: 'namespace' }, 'namespace' as any)}
                         searchQuery={searchQuery}
                     />
                 )}
@@ -1399,18 +1436,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             </button>
                         )}
 
-                        {selectedResource?.type === 'deployment' && (
+                        {(selectedResource?.type === 'deployment' || selectedResource?.type === 'daemonset' || selectedResource?.type === 'statefulset') && (
                             <button
                                 onClick={async () => {
                                     const name = selectedResource.metadata?.name || selectedResource.name;
                                     const namespace = selectedResource.metadata?.namespace || selectedResource.namespace;
 
-                                    if (confirm(`Are you sure you want to restart deployment ${name}?`)) {
+                                    if (confirm(`Are you sure you want to restart ${selectedResource.type} ${name}?`)) {
                                         try {
-                                            await window.k8s.restartDeployment(clusterName, namespace, name);
+                                            if (selectedResource.type === 'deployment') {
+                                                await window.k8s.restartDeployment(clusterName, namespace, name);
+                                            } else if (selectedResource.type === 'daemonset') {
+                                                await window.k8s.restartDaemonSet(clusterName, namespace, name);
+                                            } else if (selectedResource.type === 'statefulset') {
+                                                await window.k8s.restartStatefulSet(clusterName, namespace, name);
+                                            }
                                         } catch (e) {
                                             console.error(e);
-                                            alert("Failed to restart deployment");
+                                            alert(`Failed to restart ${selectedResource.type}`);
                                         }
                                     }
                                 }}

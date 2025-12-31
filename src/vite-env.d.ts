@@ -7,6 +7,7 @@ declare global {
         k8s: {
             getClusters: () => Promise<any[]>;
             getNamespaces: (contextName: string) => Promise<string[]>;
+            getNamespacesDetails: (contextName: string) => Promise<any[]>;
             getDeployments: (contextName: string, namespaces?: string[]) => Promise<any[]>;
             getPods: (contextName: string, namespaces?: string[]) => Promise<any[]>;
             getPod: (contextName: string, namespace: string, name: string) => Promise<any>;

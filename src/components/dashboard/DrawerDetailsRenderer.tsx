@@ -16,6 +16,8 @@ import { JobDetails } from '../resources/details/JobDetails';
 import { CronJobDetails } from '../resources/details/CronJobDetails';
 import { PriorityClassDetails } from '../resources/details/PriorityClassDetails';
 import { PodDisruptionBudgetDetails } from '../resources/details/PodDisruptionBudgetDetails';
+import { NamespaceDetails } from '../resources/details/NamespaceDetails';
+import { NodePoolDetails } from '../resources/details/NodePoolDetails';
 
 interface DrawerDetailsRendererProps {
     selectedResource: any;
@@ -47,9 +49,9 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
     switch (selectedResource.type) {
         case 'deployment':
             return (
-                <DeploymentDetails 
-                    deployment={detailedResource} 
-                    explanation={explanation} 
+                <DeploymentDetails
+                    deployment={detailedResource}
+                    explanation={explanation}
                     onExplain={handleExplain}
                     isExplaining={isExplaining}
                     onShowTopology={onShowTopology}
@@ -58,9 +60,9 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
             );
         case 'replicaset':
             return (
-                <ReplicaSetDetails 
-                    replicaSet={detailedResource} 
-                    explanation={explanation} 
+                <ReplicaSetDetails
+                    replicaSet={detailedResource}
+                    explanation={explanation}
                     onExplain={handleExplain}
                     isExplaining={isExplaining}
                     onNavigate={onNavigate}
@@ -70,9 +72,9 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
             );
         case 'daemonset':
             return (
-                <DaemonSetDetails 
-                    daemonSet={detailedResource} 
-                    explanation={explanation} 
+                <DaemonSetDetails
+                    daemonSet={detailedResource}
+                    explanation={explanation}
                     onExplain={handleExplain}
                     isExplaining={isExplaining}
                     onShowTopology={onShowTopology}
@@ -81,9 +83,9 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
             );
         case 'statefulset':
             return (
-                <StatefulSetDetails 
-                    statefulSet={detailedResource} 
-                    explanation={explanation} 
+                <StatefulSetDetails
+                    statefulSet={detailedResource}
+                    explanation={explanation}
                     onExplain={handleExplain}
                     isExplaining={isExplaining}
                     onShowTopology={onShowTopology}
@@ -92,9 +94,9 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
             );
         case 'job':
             return (
-                <JobDetails 
-                    job={detailedResource} 
-                    explanation={explanation} 
+                <JobDetails
+                    job={detailedResource}
+                    explanation={explanation}
                     onExplain={handleExplain}
                     isExplaining={isExplaining}
                     onShowTopology={onShowTopology}
@@ -103,9 +105,9 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
             );
         case 'cronjob':
             return (
-                <CronJobDetails 
-                    cronJob={detailedResource} 
-                    explanation={explanation} 
+                <CronJobDetails
+                    cronJob={detailedResource}
+                    explanation={explanation}
                     onExplain={handleExplain}
                     isExplaining={isExplaining}
                     onShowTopology={onShowTopology}
@@ -114,8 +116,8 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
             );
         case 'service':
             return (
-                <ServiceDetails 
-                    resource={detailedResource} 
+                <ServiceDetails
+                    resource={detailedResource}
                     clusterName={clusterName}
                     explanation={explanation}
                     onExplain={handleExplain}
@@ -125,10 +127,10 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
             );
         case 'pod':
             return (
-                <PodDetails 
-                    pod={detailedResource} 
-                    explanation={explanation} 
-                    onOpenLogs={(container) => onOpenLogs(detailedResource, container)} 
+                <PodDetails
+                    pod={detailedResource}
+                    explanation={explanation}
+                    onOpenLogs={(container) => onOpenLogs(detailedResource, container)}
                     onExplain={handleExplain}
                     isExplaining={isExplaining}
                     onNavigate={onNavigate}
@@ -146,14 +148,34 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
             return <RoleDetails resource={detailedResource} />;
         case 'node':
             return <NodeDetails node={detailedResource} />;
+        case 'namespace':
+            return (
+                <NamespaceDetails
+                    namespace={detailedResource}
+                    explanation={explanation}
+                    onExplain={handleExplain}
+                    isExplaining={isExplaining}
+                />
+            );
         case 'crd-definition':
             return (
-                <CrdDetails 
-                    crd={detailedResource} 
+                <CrdDetails
+                    crd={detailedResource}
                     explanation={explanation}
                 />
             );
         case 'custom-resource':
+            if (detailedResource.kind === 'NodePool' && detailedResource.apiVersion?.includes('karpenter.sh')) {
+                return (
+                    <NodePoolDetails
+                        nodePool={detailedResource}
+                        explanation={explanation}
+                        onExplain={handleExplain}
+                        isExplaining={isExplaining}
+                    />
+                );
+            }
+        // Fallthrough to generic
         case 'endpointslice':
         case 'endpoint':
         case 'ingress':
@@ -169,8 +191,8 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
         case 'validatingwebhookconfiguration':
         case 'runtimeclass':
             return (
-                <GenericResourceDetails 
-                    resource={detailedResource} 
+                <GenericResourceDetails
+                    resource={detailedResource}
                     explanation={explanation}
                     onExplain={handleExplain}
                     isExplaining={isExplaining}
@@ -178,8 +200,8 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
             );
         case 'poddisruptionbudget':
             return (
-                <PodDisruptionBudgetDetails 
-                    podDisruptionBudget={detailedResource} 
+                <PodDisruptionBudgetDetails
+                    podDisruptionBudget={detailedResource}
                     explanation={explanation}
                     onExplain={handleExplain}
                     isExplaining={isExplaining}
@@ -187,8 +209,8 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
             );
         case 'priorityclass':
             return (
-                <PriorityClassDetails 
-                    priorityClass={detailedResource} 
+                <PriorityClassDetails
+                    priorityClass={detailedResource}
                     explanation={explanation}
                     onExplain={handleExplain}
                     isExplaining={isExplaining}

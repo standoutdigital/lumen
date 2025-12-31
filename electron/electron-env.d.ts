@@ -27,9 +27,13 @@ interface Window {
   k8s: {
     getClusters: () => Promise<Array<{ name: string; cluster: any; user: any }>>
     getNamespaces: (contextName: string) => Promise<string[]>
+    getNamespacesDetails: (contextName: string) => Promise<Array<{ name: string; status: string; age: string; labels: any; annotations: any }>>
     getDeployments: (contextName: string, namespaces?: string[]) => Promise<Array<{ name: string; namespace: string; replicas: number; availableReplicas: number }>>
     getDeployment: (contextName: string, namespace: string, name: string) => Promise<any>
     scaleDeployment: (contextName: string, namespace: string, name: string, replicas: number) => Promise<any>
+    restartDeployment: (contextName: string, namespace: string, name: string) => Promise<{ success: boolean }>
+    restartDaemonSet: (contextName: string, namespace: string, name: string) => Promise<{ success: boolean }>
+    restartStatefulSet: (contextName: string, namespace: string, name: string) => Promise<{ success: boolean }>
     getDeploymentYaml: (contextName: string, namespace: string, name: string) => Promise<string>
     updateDeploymentYaml: (contextName: string, namespace: string, name: string, yamlString: string) => Promise<any>
     getPods: (contextName: string, namespaces?: string[]) => Promise<Array<{ name: string; namespace: string; status: string; restarts: number; age: string }>>
