@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, Server, RefreshCw } from 'lucide-react';
 import { TimeAgo } from '../../shared/TimeAgo';
+import { ToggleGroup } from '../../shared/ToggleGroup';
 
 interface PodVisualizerProps {
     pods: any[];
@@ -225,31 +226,27 @@ export const PodVisualizer: React.FC<PodVisualizerProps> = ({ pods: livePods, no
         >
             {/* Toolbar */}
             <div className="flex items-center justify-end p-4 pb-0 mb-4 z-20 sticky top-0">
-                <div className="flex bg-black/40 p-1 rounded-lg border border-white/10 backdrop-blur-md gap-2">
-                    <button
-                        onClick={handleRefresh}
-                        disabled={isRefreshing}
-                        className={`p-1.5 rounded-md text-gray-400 hover:text-white transition-all ${isRefreshing ? 'animate-spin text-blue-400' : ''}`}
-                        title="Refresh Snapshot"
-                    >
-                        <RefreshCw size={14} />
-                    </button>
-                    <div className="w-[1px] bg-white/10 mx-1" />
-                    <button
-                        onClick={() => setGrouping('none')}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all ${grouping === 'none' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-gray-400 hover:text-white'
-                            }`}
-                    >
-                        <LayoutGrid size={12} /> None
-                    </button>
-                    <button
-                        onClick={() => setGrouping('node')}
-                        className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all ${grouping === 'node' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-gray-400 hover:text-white'
-                            }`}
-                    >
-                        <Server size={12} /> Group by Node
-                    </button>
-                </div>
+                <ToggleGroup
+                    prefix={
+                        <>
+                            <button
+                                onClick={handleRefresh}
+                                disabled={isRefreshing}
+                                className={`p-1.5 rounded-md text-gray-400 hover:text-white transition-all ${isRefreshing ? 'animate-spin text-blue-400' : ''}`}
+                                title="Refresh Snapshot"
+                            >
+                                <RefreshCw size={14} />
+                            </button>
+                            <div className="w-[1px] bg-white/10 mx-1" />
+                        </>
+                    }
+                    options={[
+                        { value: 'none', label: 'None', icon: LayoutGrid },
+                        { value: 'node', label: 'Group by Node', icon: Server }
+                    ]}
+                    value={grouping}
+                    onChange={(val) => setGrouping(val as 'none' | 'node')}
+                />
             </div>
 
             {/* Grid Content - Auto Height */}

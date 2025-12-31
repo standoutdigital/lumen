@@ -140,6 +140,10 @@ function registerIpcHandlers() {
     return k8sService.getServiceAccount(contextName, namespace, name);
   })
 
+  ipcMain.handle('k8s:restartDeployment', (_, contextName, namespace, name) => {
+    return k8sService.restartDeployment(contextName, namespace, name);
+  })
+
   ipcMain.handle('k8s:getRoleBinding', (_, contextName, namespace, name) => {
     return k8sService.getRoleBinding(contextName, namespace, name);
   })
@@ -148,8 +152,8 @@ function registerIpcHandlers() {
     return k8sService.getClusterRoleBinding(contextName, name);
   })
 
-  ipcMain.handle('k8s:getEvents', (_, contextName, namespaces) => {
-    return k8sService.getEvents(contextName, namespaces);
+  ipcMain.handle('k8s:getEvents', (_, contextName, namespaces, fieldSelector) => {
+    return k8sService.getEvents(contextName, namespaces, fieldSelector);
   })
 
   ipcMain.handle('k8s:getEvent', async (_event, _contextName, _namespace, _name) => {
@@ -190,6 +194,10 @@ function registerIpcHandlers() {
 
   ipcMain.handle('k8s:getCustomObjects', (_, contextName, group, version, plural) => {
     return k8sService.getCustomObjects(contextName, group, version, plural);
+  })
+
+  ipcMain.handle('k8s:listCustomObjects', (_, contextName, group, version, plural, namespace) => {
+    return k8sService.listCustomObjects(contextName, group, version, plural, namespace);
   })
 
 

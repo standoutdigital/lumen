@@ -45,6 +45,7 @@ interface SecondarySidebarProps {
     connectionStatus?: 'idle' | 'connecting' | 'connected' | 'error';
     attemptedCluster?: string | null;
     isEks?: boolean;
+    hasCertManager?: boolean;
 }
 
 export const SecondarySidebar: React.FC<SecondarySidebarProps> = ({
@@ -56,10 +57,12 @@ export const SecondarySidebar: React.FC<SecondarySidebarProps> = ({
     onBack,
     connectionStatus,
     attemptedCluster,
-    isEks
+    isEks,
+    hasCertManager
 }) => {
     const [openGroups, setOpenGroups] = useState<{ [key: string]: boolean }>({
         'workloads': true,
+        'certificates': true,
         'network': false,
         'storage': false,
         'access': false,
@@ -208,6 +211,18 @@ export const SecondarySidebar: React.FC<SecondarySidebarProps> = ({
             ]
         }
     ];
+
+    if (hasCertManager) {
+        STANDARD_MENU.splice(1, 0, { // Insert after Workloads (index 0+1=1? No, Network is 1. Insert at 1 -> Network becomes 2)
+            // Or maybe after Network?
+            // User requested "Certificates"
+            id: 'certificates',
+            title: 'Certificates',
+            items: [
+                { label: 'Cert Manager', view: 'certificates', icon: <Shield size={18} /> }
+            ]
+        });
+    }
 
     // Filter CRDs
     const filteredCrds = crds.filter(crd =>

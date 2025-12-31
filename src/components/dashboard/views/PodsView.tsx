@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { VirtualizedTable, IColumn } from '../../shared/VirtualizedTable';
 import { TimeAgo } from '../../shared/TimeAgo';
@@ -13,6 +13,7 @@ interface PodsViewProps {
     sortConfig: { key: string; direction: 'asc' | 'desc' } | null;
     onSort: (key: string) => void;
     onRowClick: (pod: any) => void;
+    searchQuery?: string;
 }
 
 export const PodsView: React.FC<PodsViewProps> = ({
@@ -22,7 +23,8 @@ export const PodsView: React.FC<PodsViewProps> = ({
     nodes,
     sortConfig,
     onSort,
-    onRowClick
+    onRowClick,
+    searchQuery = ''
 }) => {
     const pageVariants = {
         initial: { opacity: 0, y: 10 },
@@ -35,6 +37,17 @@ export const PodsView: React.FC<PodsViewProps> = ({
         ease: "anticipate",
         duration: 0.3
     };
+
+    const filteredPods = useMemo(() => {
+        if (!searchQuery) return sortedPods;
+        const lowerQuery = searchQuery.toLowerCase();
+        return sortedPods.filter(pod => {
+            const name = pod.metadata?.name?.toLowerCase() || '';
+            const namespace = pod.metadata?.namespace?.toLowerCase() || '';
+            const status = pod.status?.toLowerCase() || '';
+            return name.includes(lowerQuery) || namespace.includes(lowerQuery) || status.includes(lowerQuery);
+        });
+    }, [sortedPods, searchQuery]);
 
     const columns: IColumn[] = [
         {
@@ -129,7 +142,7 @@ export const PodsView: React.FC<PodsViewProps> = ({
                     </p>
                     <div className="flex-1 min-h-0">
                         <VirtualizedTable
-                            data={sortedPods}
+                            data={filteredPods}
                             columns={columns}
                             sortConfig={sortConfig}
                             onSort={onSort}
@@ -140,7 +153,7 @@ export const PodsView: React.FC<PodsViewProps> = ({
             ) : (
                 <ErrorBoundary>
                     <PodVisualizer
-                        pods={pods}
+                        pods={filteredPods}
                         nodes={nodes}
                     />
                 </ErrorBoundary>

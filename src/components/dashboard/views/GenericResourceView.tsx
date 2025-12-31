@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { VirtualizedTable, IColumn } from '../../shared/VirtualizedTable';
 
@@ -11,6 +11,7 @@ interface GenericResourceViewProps {
     sortConfig?: { key: string; direction: 'asc' | 'desc' } | null;
     onSort?: (key: string) => void;
     viewKey?: string; // For motion key
+    searchQuery?: string;
 }
 
 export const GenericResourceView: React.FC<GenericResourceViewProps> = ({
@@ -20,7 +21,8 @@ export const GenericResourceView: React.FC<GenericResourceViewProps> = ({
     onRowClick,
     sortConfig,
     onSort,
-    viewKey = "resource-view"
+    viewKey = "resource-view",
+    searchQuery = ''
 }) => {
     const pageVariants = {
         initial: { opacity: 0, y: 10 },
@@ -33,6 +35,18 @@ export const GenericResourceView: React.FC<GenericResourceViewProps> = ({
         ease: "anticipate",
         duration: 0.3
     };
+
+    const filteredData = useMemo(() => {
+        if (!searchQuery) return data;
+        const lowerQuery = searchQuery.toLowerCase();
+        return data.filter(item => {
+            // Check metadata name and namespace
+            const name = item.metadata?.name?.toLowerCase() || item.name?.toLowerCase() || '';
+            const namespace = item.metadata?.namespace?.toLowerCase() || item.namespace?.toLowerCase() || '';
+
+            return name.includes(lowerQuery) || namespace.includes(lowerQuery);
+        });
+    }, [data, searchQuery]);
 
     return (
         <motion.div
@@ -52,7 +66,7 @@ export const GenericResourceView: React.FC<GenericResourceViewProps> = ({
             <div className="flex-1 min-h-0">
                 <VirtualizedTable
                     columns={columns}
-                    data={data}
+                    data={filteredData}
                     onRowClick={onRowClick}
                     sortConfig={sortConfig}
                     onSort={onSort}

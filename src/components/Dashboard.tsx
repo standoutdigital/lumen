@@ -6,8 +6,11 @@ import {
     Network,
     PenTool,
     Square,
-    Trash
+    Trash,
+    Search,
+    RotateCcw
 } from 'lucide-react';
+
 import { ErrorBoundary } from './shared/ErrorBoundary';
 import { TimeAgo } from './shared/TimeAgo';
 import { NamespaceSelector } from './dashboard/NamespaceSelector';
@@ -18,9 +21,8 @@ import { PodsView } from './dashboard/views/PodsView';
 import { OverviewView } from './dashboard/views/OverviewView';
 import { ResourceTopology } from './resources/visualizers/ResourceTopology';
 import { ScaleModal } from './shared/ScaleModal';
-import { StatusBadge } from './shared/StatusBadge';
 import { NodesView } from './dashboard/views/NodesView';
-
+import { CertManagerView } from './dashboard/views/CertManagerView';
 
 interface DashboardProps {
     clusterName: string;
@@ -93,6 +95,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
 
     // Sorting State
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    // Clear search when active view changes
+    useEffect(() => {
+        setSearchQuery('');
+    }, [activeView]);
+
 
     const handleOpenLogs = (pod: any, containerName: string) => {
         // Pass up to parent
@@ -124,6 +133,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                 return sortConfig.direction === 'asc' ? a.restarts - b.restarts : b.restarts - a.restarts;
             }
 
+            if (sortConfig.key === 'status') {
+                // Determine health: true if available == replicas
+                // We want to sort primarily by health (healthy vs not)
+                // And maybe secondarily by available replicas
+
+                // For deployments/replicasets
+                if ('availableReplicas' in a) {
+                    const isHealthyA = (a.availableReplicas === a.replicas && a.replicas > 0);
+                    const isHealthyB = (b.availableReplicas === b.replicas && b.replicas > 0);
+
+                    if (isHealthyA === isHealthyB) {
+                        // Tie-break with available replicas
+                        return sortConfig.direction === 'asc'
+                            ? (a.availableReplicas || 0) - (b.availableReplicas || 0)
+                            : (b.availableReplicas || 0) - (a.availableReplicas || 0);
+                    }
+
+                    // Healthy (true) > Unhealthy (false)
+                    // ASC: false, true
+                    // DESC: true, false
+                    return sortConfig.direction === 'asc'
+                        ? (isHealthyA ? 1 : -1)
+                        : (isHealthyA ? -1 : 1);
+                }
+            }
+
             // Default string comparison
             const valA = a[sortConfig.key]?.toString().toLowerCase() || '';
             const valB = b[sortConfig.key]?.toString().toLowerCase() || '';
@@ -133,6 +168,40 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
             return 0;
         });
     };
+
+    const getDeploymentStatus = (dep: any) => {
+        const conditions = dep.status?.conditions || [];
+
+        // Check for specific failure states first
+        const replicaFailure = conditions.find((c: any) => c.type === 'ReplicaFailure' && c.status === 'True');
+        if (replicaFailure) return { status: 'Failed', color: 'red' };
+
+        const progressing = conditions.find((c: any) => c.type === 'Progressing');
+        if (progressing && progressing.status === 'False') return { status: 'Stalled', color: 'red' };
+
+        // If it's progressing but not yet available (rolling update in progress)
+        if (progressing && progressing.status === 'True' && dep.status?.updatedReplicas < dep.spec?.replicas) {
+            return { status: 'Updating', color: 'blue' };
+        }
+
+        // Available check
+        const available = conditions.find((c: any) => c.type === 'Available' && c.status === 'True');
+        if (available) return { status: 'Active', color: 'green' };
+
+        return { status: 'Pending', color: 'yellow' };
+    };
+
+    // Deployment Watcher (1s interval when on deployments view)
+    useEffect(() => {
+        if (activeView === 'deployments' && clusterName) {
+            console.log('Starting Deployment Watcher (1000ms)');
+            const interval = setInterval(async () => {
+                const newDeployments = await window.k8s.getDeployments(clusterName, selectedNamespaces);
+                setDeployments(newDeployments);
+            }, 1000);
+            return () => clearInterval(interval);
+        }
+    }, [activeView, clusterName, selectedNamespaces]);
 
     // Clear explanation when resource changes
     useEffect(() => {
@@ -629,12 +698,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
         <div className="flex flex-col h-full relative">
             {/* Top Bar */}
             <div className="flex-none p-6 border border-white/10 bg-white/5 backdrop-blur-md sticky top-0 z-10 flex items-center justify-between rounded-2xl">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
+                <div className="flex items-center gap-4 flex-1">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-900/20 flex-none">
                         <Layers className="text-white" size={20} />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold text-white tracking-tight capitalize">{isCrdView ? currentCrdKind : activeView}</h1>
+                        <h1 className="text-2xl font-bold text-white tracking-tight capitalize whitespace-nowrap">{isCrdView ? currentCrdKind : activeView}</h1>
                         <div className="flex items-center gap-2 text-sm text-gray-400">
                             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
                                 <Network size={12} className="text-blue-400" />
@@ -642,9 +711,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             </span>
                         </div>
                     </div>
+
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {/* Search Input */}
+                    <div className="relative group w-64 mr-2">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-4 w-4 text-gray-500 group-focus-within:text-blue-400 transition-colors" />
+                        </div>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search resources..."
+                            className="block w-full pl-10 pr-3 py-2 border border-white/10 rounded-md leading-5 bg-black/20 text-gray-300 placeholder-gray-500 focus:outline-none focus:bg-white/5 focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 sm:text-sm transition-all"
+                        />
+                    </div>
                     {/* Pod View Toggle */}
                     {activeView === 'pods' && (
                         <div className="flex bg-black/40 p-1 rounded-lg border border-white/10 mr-2">
@@ -699,7 +782,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                     <NodesView
                         nodes={nodes}
                         onRowClick={(node: any) => handleResourceClick(node, 'node')}
+                        searchQuery={searchQuery}
                     />
+                )}
+
+                {(activeView === 'certificates') && (
+                    <CertManagerView clusterName={clusterName} searchQuery={searchQuery} />
                 )}
 
                 {/* CUSTOM RESOURCES TABLE */}
@@ -716,6 +804,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         ]}
                         data={customObjects}
                         onRowClick={(obj: any) => handleResourceClick(obj, 'custom-resource')}
+                        searchQuery={searchQuery}
                     />
                 )}
 
@@ -734,6 +823,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                         ]}
                         data={crdDefinitions}
                         onRowClick={(crd: any) => handleResourceClick(crd, 'crd-definition')}
+                        searchQuery={searchQuery}
                     />
                 )}
 
@@ -769,10 +859,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                                 { label: 'Name', dataKey: 'name', sortable: true, flexGrow: 2, cellRenderer: (name) => <span className="font-medium text-gray-200">{name}</span> },
                                 { label: 'Namespace', dataKey: 'namespace', sortable: true, flexGrow: 1, cellRenderer: (ns) => <span className="text-gray-400">{ns}</span> },
                                 { label: 'Replicas', dataKey: 'replicas', width: 100, flexGrow: 0, cellRenderer: (_, dep) => <span className="text-gray-400">{dep.availableReplicas || 0} / {dep.replicas || 0}</span> },
-                                { label: 'Status', dataKey: 'status', width: 100, flexGrow: 0, cellRenderer: (_, dep) => <StatusBadge condition={dep.availableReplicas === dep.replicas && dep.replicas > 0} /> }
+                                {
+                                    label: 'Status', dataKey: 'status', width: 120, flexGrow: 0, cellRenderer: (_, dep) => {
+                                        const { status, color } = getDeploymentStatus(dep);
+                                        return (
+                                            <span className={`px-2 py-0.5 rounded text-xs font-medium bg-${color}-500/10 text-${color}-400 border border-${color}-500/20`}>
+                                                {status}
+                                            </span>
+                                        );
+                                    }
+                                }
                             ]}
-                            data={deployments}
+                            data={getSortedData(deployments)}
                             onRowClick={(dep: any) => handleResourceClick(dep, 'deployment')}
+                            sortConfig={sortConfig}
+                            onSort={handleSort}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -786,6 +888,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             sortConfig={sortConfig}
                             onSort={handleSort}
                             onRowClick={(pod: any) => handleResourceClick(pod, 'pod')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -804,6 +907,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={replicaSets}
                             onRowClick={(rs: any) => handleResourceClick(rs, 'replicaset')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -823,6 +927,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={services}
                             onRowClick={(svc: any) => handleResourceClick(svc, 'service')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -838,6 +943,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={clusterRoleBindings}
                             onRowClick={(crb: any) => handleResourceClick(crb, 'clusterrolebinding')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -854,6 +960,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={roleBindings}
                             onRowClick={(rb: any) => handleResourceClick(rb, 'rolebinding')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -872,6 +979,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={serviceAccounts}
                             onRowClick={(sa: any) => handleResourceClick(sa, 'serviceaccount')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -888,6 +996,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={roles}
                             onRowClick={(r: any) => handleResourceClick(r, 'role')}
+                            searchQuery={searchQuery}
                         />
                     )}
                     {/* DAEMONSETS TABLE */}
@@ -907,6 +1016,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={daemonSets}
                             onRowClick={(ds: any) => handleResourceClick(ds, 'daemonset')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -926,6 +1036,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={statefulSets}
                             onRowClick={(sts: any) => handleResourceClick(sts, 'statefulset')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -946,6 +1057,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={jobs}
                             onRowClick={(job: any) => handleResourceClick(job, 'job')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -966,6 +1078,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={cronJobs}
                             onRowClick={(cj: any) => handleResourceClick(cj, 'cronjob')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -985,6 +1098,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={endpointSlices}
                             onRowClick={(es: any) => handleResourceClick(es, 'endpointslice')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1002,6 +1116,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={endpoints}
                             onRowClick={(ep: any) => handleResourceClick(ep, 'endpoint')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1021,6 +1136,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={ingresses}
                             onRowClick={(ing: any) => handleResourceClick(ing, 'ingress')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1039,6 +1155,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={ingressClasses}
                             onRowClick={(ic: any) => handleResourceClick(ic, 'ingressclass')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1057,6 +1174,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={networkPolicies}
                             onRowClick={(np: any) => handleResourceClick(np, 'networkpolicy')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1278,6 +1396,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                                 title="Scale Deployment"
                             >
                                 <Activity size={14} /> Scale
+                            </button>
+                        )}
+
+                        {selectedResource?.type === 'deployment' && (
+                            <button
+                                onClick={async () => {
+                                    const name = selectedResource.metadata?.name || selectedResource.name;
+                                    const namespace = selectedResource.metadata?.namespace || selectedResource.namespace;
+
+                                    if (confirm(`Are you sure you want to restart deployment ${name}?`)) {
+                                        try {
+                                            await window.k8s.restartDeployment(clusterName, namespace, name);
+                                        } catch (e) {
+                                            console.error(e);
+                                            alert("Failed to restart deployment");
+                                        }
+                                    }
+                                }}
+                                className="p-1 px-3 ml-2 bg-orange-600/20 hover:bg-orange-600/30 text-orange-400 border border-orange-600/30 rounded-md text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-colors"
+                                title="Rolling Restart"
+                            >
+                                <RotateCcw size={14} /> Restart
                             </button>
                         )}
 

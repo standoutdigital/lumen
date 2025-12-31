@@ -234,6 +234,7 @@ export class K8sService {
             namespace: dep.metadata?.namespace,
             replicas: dep.spec?.replicas,
             availableReplicas: dep.status?.availableReplicas,
+            status: dep.status,
             metadata: dep.metadata,
             spec: dep.spec
         }));
@@ -492,6 +493,40 @@ export class K8sService {
         }));
     }
 
+    async restartDeployment(contextName: string, namespace: string, deploymentName: string) {
+        console.log(`[restartDeployment] Called with context=${contextName}, ns=${namespace}, name=${deploymentName}`);
+        this.kc.setCurrentContext(contextName);
+        const k8sApi = this.kc.makeApiClient(AppsV1Api);
+
+        try {
+            // 1. Fetch existing deployment
+            const res = await k8sApi.readNamespacedDeployment({ name: deploymentName, namespace });
+            const deployment = (res as any).body ? (res as any).body : res;
+
+            // 2. Update restartedAt annotation
+            if (!deployment.spec) deployment.spec = {};
+            if (!deployment.spec.template) deployment.spec.template = {};
+            if (!deployment.spec.template.metadata) deployment.spec.template.metadata = {};
+            if (!deployment.spec.template.metadata.annotations) deployment.spec.template.metadata.annotations = {};
+
+            deployment.spec.template.metadata.annotations["kubectl.kubernetes.io/restartedAt"] = new Date().toISOString();
+
+            // 3. Replace deployment (PUT)
+            console.log(`[restartDeployment] Sending replacement for ${deploymentName}`);
+            await k8sApi.replaceNamespacedDeployment({
+                name: deploymentName,
+                namespace,
+                body: deployment
+            });
+
+            console.log(`[restartDeployment] Successfully restarted ${deploymentName}`);
+            return { success: true };
+        } catch (e: any) {
+            console.error(`Failed to restart deployment ${deploymentName}:`, e);
+            throw new Error(e.body?.message || e.message);
+        }
+    }
+
     async getReplicaSet(contextName: string, namespace: string, name: string) {
         console.log(`[k8s] getReplicaSet called with: context=${contextName}, namespace=${namespace}, name=${name}`);
         this.kc.setCurrentContext(contextName);
@@ -721,6 +756,48 @@ export class K8sService {
         }
     }
 
+    async getCRD(contextName: string, name: string) {
+        // console.log(`[k8s] getCRD called for ${name}`);
+        this.kc.setCurrentContext(contextName);
+        const k8sApi = this.kc.makeApiClient(ApiextensionsV1Api);
+        try {
+            const res = await k8sApi.readCustomResourceDefinition({ name });
+            return (res as any).body ? (res as any).body : res;
+        } catch (error) {
+            // Common to fail if not exists
+            return null;
+        }
+    }
+
+    async listCustomObjects(contextName: string, group: string, version: string, plural: string, namespace: string = '') {
+        console.log(`[k8s] listCustomObjects for ${group}/${version}/${plural} in ns=${namespace}`);
+        this.kc.setCurrentContext(contextName);
+        const k8sApi = this.kc.makeApiClient(CustomObjectsApi);
+
+        try {
+            let res;
+            if (namespace) {
+                res = await k8sApi.listNamespacedCustomObject({
+                    group,
+                    version,
+                    namespace,
+                    plural
+                });
+            } else {
+                res = await k8sApi.listClusterCustomObject({
+                    group,
+                    version,
+                    plural
+                });
+            }
+            const body = (res as any).body ? (res as any).body : res;
+            return body.items || [];
+        } catch (error) {
+            console.error(`Error listing custom objects ${group}/${version}/${plural}:`, error);
+            return [];
+        }
+    }
+
 
     async streamPodLogs(contextName: string, namespace: string, name: string, containerName: string, onData: (data: string) => void) {
         console.log(`[k8s] streamPodLogs called for ${namespace}/${name}`);
@@ -804,18 +881,18 @@ export class K8sService {
             this.activeLogStreams.delete(streamId);
         }
     }
-    async getEvents(contextName: string, namespaces: string[] = []) {
-        console.log(`Getting Events for ${contextName}, namespaces: ${namespaces}`);
+    async getEvents(contextName: string, namespaces: string[] = [], fieldSelector?: string) {
+        console.log(`Getting Events for ${contextName}, namespaces: ${namespaces}, fieldSelector: ${fieldSelector}`);
         this.kc.setCurrentContext(contextName);
         const k8sApi = this.kc.makeApiClient(CoreV1Api);
 
         let items: any[] = [];
         try {
             if (namespaces.includes('all')) {
-                const res = await k8sApi.listEventForAllNamespaces();
+                const res = await k8sApi.listEventForAllNamespaces({ fieldSelector });
                 items = (res as any).body ? (res as any).body.items : (res as any).items;
             } else {
-                const promises = namespaces.map(ns => k8sApi.listNamespacedEvent({ namespace: ns }));
+                const promises = namespaces.map(ns => k8sApi.listNamespacedEvent({ namespace: ns, fieldSelector }));
                 const results = await Promise.all(promises);
                 items = results.flatMap(r => (r as any).body ? (r as any).body.items : (r as any).items);
             }
@@ -889,18 +966,7 @@ export class K8sService {
         }
     }
 
-    async getCRD(contextName: string, name: string) {
-        console.log(`[k8s] getCRD called for ${name}`);
-        this.kc.setCurrentContext(contextName);
-        const k8sApi = this.kc.makeApiClient(ApiextensionsV1Api);
-        try {
-            const res = await k8sApi.readCustomResourceDefinition({ name });
-            return (res as any).body ? (res as any).body : res;
-        } catch (error) {
-            console.error('Error fetching CRD:', error);
-            return null;
-        }
-    }
+
 
     async getCRDs(contextName: string) {
         console.log(`Getting CRDs for ${contextName}`);

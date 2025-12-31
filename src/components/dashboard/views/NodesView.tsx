@@ -13,12 +13,27 @@ import {
 interface NodesViewProps {
     nodes: any[];
     onRowClick?: (node: any) => void;
+    searchQuery?: string;
 }
 
-export const NodesView: React.FC<NodesViewProps> = ({ nodes, onRowClick }) => {
+export const NodesView: React.FC<NodesViewProps> = ({ nodes, onRowClick, searchQuery = '' }) => {
     const [showStats, setShowStats] = React.useState(false);
 
-    // Calculate Stats
+    // Filter Logic
+    const filteredNodes = useMemo(() => {
+        if (!searchQuery) return nodes;
+        const lowerQuery = searchQuery.toLowerCase();
+        return nodes.filter(node => {
+            const name = node.metadata?.name?.toLowerCase() || '';
+            const info = getNodeProviderInfo(node);
+            const instanceType = info.instanceType?.toLowerCase() || '';
+            const zone = info.zone?.toLowerCase() || '';
+
+            return name.includes(lowerQuery) || instanceType.includes(lowerQuery) || zone.includes(lowerQuery);
+        });
+    }, [nodes, searchQuery]);
+
+    // Calculate Stats based on FILTERED nodes
     const { stats, chartData } = useMemo(() => {
         let onDemand = 0;
         let spot = 0;
@@ -28,7 +43,7 @@ export const NodesView: React.FC<NodesViewProps> = ({ nodes, onRowClick }) => {
         const zoneMap = new Map<string, number>();
         const typeMap = new Map<string, number>();
 
-        nodes.forEach(node => {
+        filteredNodes.forEach(node => {
             const info = getNodeProviderInfo(node);
             if (info.isSpot) spot++;
             else onDemand++;
@@ -64,7 +79,7 @@ export const NodesView: React.FC<NodesViewProps> = ({ nodes, onRowClick }) => {
             stats: { onDemand, spot, ready, notReady },
             chartData: { capacity: capacityData, zones: zoneData, types: typeData }
         };
-    }, [nodes]);
+    }, [filteredNodes]);
 
     const columns: IColumn[] = [
         {
@@ -272,7 +287,7 @@ export const NodesView: React.FC<NodesViewProps> = ({ nodes, onRowClick }) => {
             <div className="flex-1 min-h-0">
                 <VirtualizedTable
                     columns={columns}
-                    data={nodes}
+                    data={filteredNodes}
                     onRowClick={onRowClick}
                 />
             </div>

@@ -15,12 +15,14 @@ declare global {
             getClusterRoleBindings: (contextName: string) => Promise<any[]>;
             getRoleBindings: (contextName: string, namespaces?: string[]) => Promise<any[]>;
             getDeployment: (contextName: string, namespace: string, name: string) => Promise<any>;
+            restartDeployment: (contextName: string, namespace: string, name: string) => Promise<{ success: boolean }>;
             getService: (contextName: string, namespace: string, name: string) => Promise<any>;
             getEvents: (contextName: string, namespaces?: string[]) => Promise<any[]>;
             getNodes: (contextName: string) => Promise<any[]>;
             getNode: (contextName: string, name: string) => Promise<any>;
             getCRDs: (contextName: string) => Promise<any[]>;
             getCRD: (contextName: string, name: string) => Promise<any>;
+            listCustomObjects: (contextName: string, group: string, version: string, plural: string, namespace?: string) => Promise<any[]>;
             getCustomObjects: (contextName: string, group: string, version: string, plural: string) => Promise<any[]>;
             getClusterRoleBinding: (contextName: string, name: string) => Promise<any>;
             getDaemonSets: (contextName: string, namespaces?: string[]) => Promise<any[]>;

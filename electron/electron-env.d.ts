@@ -107,6 +107,7 @@ interface Window {
     getNode: (contextName: string, name: string) => Promise<any>
     getCRDs: (contextName: string) => Promise<any[]>
     getCRD: (contextName: string, name: string) => Promise<any>
+    listCustomObjects: (contextName: string, group: string, version: string, plural: string, namespace?: string) => Promise<any[]>
     getCustomObjects: (contextName: string, group: string, version: string, plural: string) => Promise<any[]>
     startPortForward: (contextName: string, namespace: string, serviceName: string, servicePort: number, localPort: number) => Promise<{ id: string, localPort: number }>
     stopPortForward: (id: string) => Promise<boolean>

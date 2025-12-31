@@ -16,6 +16,7 @@ function App() {
     const [activeView, setActiveView] = useState<'clusters' | 'dashboard' | 'settings'>('clusters')
     const [selectedCluster, setSelectedCluster] = useState<string | null>(null)
     const [isEks, setIsEks] = useState(false);
+    const [hasCertManager, setHasCertManager] = useState(false);
 
     // Connection State
     const [connectionStatus, setConnectionStatus] = useState<'idle' | 'connecting' | 'connected' | 'error'>('idle');
@@ -84,6 +85,14 @@ function App() {
             }).catch(e => {
                 console.warn("Failed to check EKS status", e);
                 setIsEks(false);
+            });
+
+            // Check Cert Manager status
+            window.k8s.getCRD(clusterName, 'certificates.cert-manager.io').then(crd => {
+                setHasCertManager(!!crd);
+            }).catch(e => {
+                console.warn("Failed to check Cert Manager status", e);
+                setHasCertManager(false);
             });
         } catch (err: any) {
             console.error("Connection failed", err);
@@ -300,6 +309,7 @@ function App() {
                             connectionStatus={connectionStatus}
                             attemptedCluster={attemptedCluster}
                             isEks={isEks}
+                            hasCertManager={hasCertManager}
                             onBack={() => {
                                 setActiveView('clusters');
                                 setSelectedCluster(null); // Optional: clear selection or keep it?
