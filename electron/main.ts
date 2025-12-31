@@ -236,6 +236,10 @@ function registerIpcHandlers() {
     return shell.openExternal(url);
   })
 
+  ipcMain.handle('k8s:decodeCertificate', (_, certData) => {
+    return k8sService.decodeCertificate(certData);
+  })
+
   ipcMain.handle('ai:explainResource', async (_, resource, modelName) => {
     try {
       const apiKey = await getApiKey();

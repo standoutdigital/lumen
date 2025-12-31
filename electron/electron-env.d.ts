@@ -125,6 +125,15 @@ interface Window {
     stopStreamPodLogs: (namespace: string, name: string, containerName: string) => Promise<void>
     onPodLogChunk: (callback: (streamId: string, chunk: string) => void) => (() => void)
     explainResource: (resource: any, model?: string) => Promise<string>
+    decodeCertificate: (certData: string) => Promise<{
+      subject: string;
+      issuer: string;
+      validFrom: string;
+      validTo: string;
+      serialNumber: string;
+      fingerprint: string;
+      sans: string[];
+    } | null>
     openExternal: (url: string) => Promise<void>
     getApiKey: () => Promise<string>
     saveApiKey: (key: string) => Promise<void>

@@ -1,5 +1,6 @@
 import { KubeConfig, AppsV1Api, CoreV1Api, RbacAuthorizationV1Api, ApiextensionsV1Api, CustomObjectsApi, BatchV1Api, NetworkingV1Api, StorageV1Api, DiscoveryV1Api, PortForward, Watch, Log, AutoscalingV2Api, PolicyV1Api, AdmissionregistrationV1Api, SchedulingV1Api, NodeV1Api } from '@kubernetes/client-node';
 import * as net from 'net';
+import * as crypto from 'crypto';
 import * as yaml from 'js-yaml';
 
 interface ActiveForward {
@@ -11,6 +12,16 @@ interface ActiveForward {
     localPort: number;
     server: net.Server;
     sockets: Set<net.Socket>;
+}
+
+interface CertificateInfo {
+    subject: string;
+    issuer: string;
+    validFrom: string;
+    validTo: string;
+    serialNumber: string;
+    fingerprint: string;
+    sans: string[];
 }
 
 export class K8sService {
@@ -2071,6 +2082,23 @@ export class K8sService {
         } catch (error) {
             console.error("Error updating PDB:", error);
             throw error;
+        }
+    }
+    public decodeCertificate(certData: string): CertificateInfo | null {
+        try {
+            const cert = new crypto.X509Certificate(certData);
+            return {
+                subject: cert.subject,
+                issuer: cert.issuer,
+                validFrom: cert.validFrom,
+                validTo: cert.validTo,
+                serialNumber: cert.serialNumber,
+                fingerprint: cert.fingerprint,
+                sans: cert.subjectAltName ? cert.subjectAltName.split(',').map(s => s.trim()) : []
+            };
+        } catch (e) {
+            console.error('Failed to decode certificate:', e);
+            return null;
         }
     }
 }

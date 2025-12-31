@@ -1270,6 +1270,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={storageClasses}
                             onRowClick={(sc: any) => handleResourceClick(sc, 'storageclass')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1286,6 +1287,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={configMaps}
                             onRowClick={(cm: any) => handleResourceClick(cm, 'configmap')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1302,6 +1304,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={secrets}
                             onRowClick={(secret: any) => handleResourceClick(secret, 'secret')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1320,6 +1323,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={horizontalPodAutoscalers}
                             onRowClick={(hpa: any) => handleResourceClick(hpa, 'horizontalpodautoscaler')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1337,6 +1341,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={podDisruptionBudgets}
                             onRowClick={(pdb: any) => handleResourceClick(pdb, 'poddisruptionbudget')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1351,6 +1356,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={mutatingWebhookConfigurations}
                             onRowClick={(mwc: any) => handleResourceClick(mwc, 'mutatingwebhookconfiguration')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1365,6 +1371,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={validatingWebhookConfigurations}
                             onRowClick={(vwc: any) => handleResourceClick(vwc, 'validatingwebhookconfiguration')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1381,6 +1388,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={priorityClasses}
                             onRowClick={(pc: any) => handleResourceClick(pc, 'priorityclass')}
+                            searchQuery={searchQuery}
                         />
                     )}
 
@@ -1395,6 +1403,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ clusterName, activeView, o
                             ]}
                             data={runtimeClasses}
                             onRowClick={(rc: any) => handleResourceClick(rc, 'runtimeclass')}
+                            searchQuery={searchQuery}
                         />
                     )}
                 </AnimatePresence>

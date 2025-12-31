@@ -18,6 +18,7 @@ import { PriorityClassDetails } from '../resources/details/PriorityClassDetails'
 import { PodDisruptionBudgetDetails } from '../resources/details/PodDisruptionBudgetDetails';
 import { NamespaceDetails } from '../resources/details/NamespaceDetails';
 import { NodePoolDetails } from '../resources/details/NodePoolDetails';
+import { SecretDetails } from '../resources/details/SecretDetails';
 
 interface DrawerDetailsRendererProps {
     selectedResource: any;
@@ -185,7 +186,23 @@ export const DrawerDetailsRenderer: React.FC<DrawerDetailsRendererProps> = ({
         case 'persistentvolume':
         case 'storageclass':
         case 'configmap':
+            return (
+                <GenericResourceDetails
+                    resource={detailedResource}
+                    explanation={explanation}
+                    onExplain={handleExplain}
+                    isExplaining={isExplaining}
+                />
+            );
         case 'secret':
+            return (
+                <SecretDetails
+                    secret={detailedResource}
+                    explanation={explanation}
+                    onExplain={handleExplain}
+                    isExplaining={isExplaining}
+                />
+            );
         case 'horizontalpodautoscaler':
         case 'mutatingwebhookconfiguration':
         case 'validatingwebhookconfiguration':

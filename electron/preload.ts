@@ -133,6 +133,7 @@ contextBridge.exposeInMainWorld('k8s', {
   stopAllPortForwards: () => ipcRenderer.invoke('k8s:stopAllPortForwards'),
   getActivePortForwards: () => ipcRenderer.invoke('k8s:getActivePortForwards'),
   explainResource: (resource: any, model?: string) => ipcRenderer.invoke('ai:explainResource', resource, model),
+  decodeCertificate: (certData: string) => ipcRenderer.invoke('k8s:decodeCertificate', certData),
   openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
   deletePod: (contextName: string, namespace: string, name: string) => ipcRenderer.invoke('k8s:deletePod', contextName, namespace, name),
   watchPods: (contextName: string, namespaces: string[]) => ipcRenderer.send('k8s:watchPods', contextName, namespaces),
