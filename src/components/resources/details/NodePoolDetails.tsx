@@ -1,5 +1,5 @@
 import React from 'react';
-import { Server, Cpu, HardDrive, Box, Activity, Settings, AlertTriangle, Shield, CheckCircle, List } from 'lucide-react';
+import { Server, Cpu, HardDrive, Box, Activity, Settings, AlertTriangle, CheckCircle, List } from 'lucide-react';
 import { TimeAgo } from '../../shared/TimeAgo';
 import ReactMarkdown from 'react-markdown';
 
